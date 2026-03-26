@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Wild Cards Fencing",
+    "city": "Москва",
+    "kind": "fencing",
+    "source_url": "https://www.rusfencing.ru/org_card.php?ID=2475826"
+  },
+  {
+    "name": "Fencing League",
+    "city": "Москва",
+    "kind": "fencing",
+    "source_url": "https://www.rusfencing.ru/org_card.php?ID=1678052"
+  },
+  {
+    "name": "ФК Динамо-Москва",
+    "city": "Москва",
+    "kind": "fencing",
+    "source_url": "https://www.rusfencing.ru/org_card.php?ID=202513"
+  },
+  {
+    "name": "Фехтовальный клуб Феникс",
+    "city": "Москва",
+    "kind": "fencing",
+    "source_url": "https://www.rusfencing.ru/org_card.php?ID=3413377"
+  },
+  {
+    "name": "Black Sword Fighters",
+    "city": "Москва",
+    "kind": "longsword",
+    "source_url": "https://bsf-msk.ru/"
+  },
+  {
+    "name": "Duel Club",
+    "city": "Москва",
+    "kind": "longsword",
+    "source_url": "https://duel-club.ru/"
+  },
+  {
+    "name": "Men With Swords",
+    "city": "Москва",
+    "kind": "longsword",
+    "source_url": "https://menwithswords.ru/"
+  }
+]

@@ -1,0 +1,1 @@
+"""Glove bot package."""

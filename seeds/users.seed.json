@@ -1,0 +1,100 @@
+[
+  {
+    "telegram_id": 100000001,
+    "username": "ivan_foil",
+    "display_name": "Ivan",
+    "full_name": "Иван Петров",
+    "city": "Москва",
+    "club_name": "Fencing League",
+    "is_admin": false,
+    "weapons": [
+      { "weapon_type": "foil", "readiness_status": "ready_today", "rating": 1010 },
+      { "weapon_type": "sabre", "readiness_status": "not_ready", "rating": 1000 }
+    ]
+  },
+  {
+    "telegram_id": 100000002,
+    "username": "maria_sabre",
+    "display_name": "Maria",
+    "full_name": "Мария Смирнова",
+    "city": "Москва",
+    "club_name": "ФК Динамо-Москва",
+    "is_admin": false,
+    "weapons": [
+      { "weapon_type": "sabre", "readiness_status": "actively_looking", "rating": 1032 }
+    ]
+  },
+  {
+    "telegram_id": 100000003,
+    "username": "oleg_foil",
+    "display_name": "Oleg",
+    "full_name": "Олег Николаев",
+    "city": "Москва",
+    "club_name": "Wild Cards Fencing",
+    "is_admin": false,
+    "weapons": [
+      { "weapon_type": "foil", "readiness_status": "ready", "rating": 995 }
+    ]
+  },
+  {
+    "telegram_id": 100000004,
+    "username": "anna_longsword",
+    "display_name": "Anna",
+    "full_name": "Анна Миронова",
+    "city": "Москва",
+    "club_name": "Black Sword Fighters",
+    "is_admin": false,
+    "weapons": [
+      { "weapon_type": "longsword", "readiness_status": "ready", "rating": 980 }
+    ]
+  },
+  {
+    "telegram_id": 100000005,
+    "username": "dmitry_duel",
+    "display_name": "Dmitry",
+    "full_name": "Дмитрий Орлов",
+    "city": "Москва",
+    "club_name": "Duel Club",
+    "is_admin": false,
+    "weapons": [
+      { "weapon_type": "longsword", "readiness_status": "ready_soon", "rating": 1005 }
+    ]
+  },
+  {
+    "telegram_id": 100000006,
+    "username": "elena_mix",
+    "display_name": "Elena",
+    "full_name": "Елена Воронова",
+    "city": "Москва",
+    "club_name": "Фехтовальный клуб Феникс",
+    "is_admin": false,
+    "weapons": [
+      { "weapon_type": "foil", "readiness_status": "actively_looking", "rating": 1040 },
+      { "weapon_type": "sabre", "readiness_status": "ready_today", "rating": 1018 }
+    ]
+  },
+  {
+    "telegram_id": 100000007,
+    "username": "kirill_custom",
+    "display_name": "Kirill",
+    "full_name": "Кирилл Седов",
+    "city": "Москва",
+    "club_name": "Свободный Клуб",
+    "is_admin": false,
+    "weapons": [
+      { "weapon_type": "longsword", "readiness_status": "not_ready", "rating": 1000 }
+    ]
+  },
+  {
+    "telegram_id": 100000008,
+    "username": "admin_glove",
+    "display_name": "Admin",
+    "full_name": "Админ Glove",
+    "city": "Москва",
+    "club_name": "Fencing League",
+    "is_admin": true,
+    "weapons": [
+      { "weapon_type": "foil", "readiness_status": "not_ready", "rating": 1000 }
+    ]
+  }
+]

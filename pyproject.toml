@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glove-bot"
+version = "0.1.0"
+description = "Telegram bot for matchmaking fencing sparring matches"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "python-telegram-bot[job-queue]>=21.0,<22.0",
+    "SQLAlchemy>=2.0,<3.0",
+    "python-dotenv>=1.0,<2.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["bot*"]
