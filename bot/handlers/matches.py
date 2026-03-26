@@ -27,6 +27,14 @@ RESULT_LABELS = {
     "Ничья": "draw",
 }
 
+MATCH_STATUS_LABELS = {
+    "active": "🟡 Ждет результата",
+    "awaiting_confirmation": "🟠 Ждет подтверждения",
+    "disputed": "🔴 Спорный",
+    "completed": "🟢 Завершен",
+    "auto_draw": "⚪ Авто-ничья",
+}
+
 
 def _menu_keyboard(update: Update):
     user = update.effective_user
@@ -36,9 +44,9 @@ def _menu_keyboard(update: Update):
 
 def _result_text(item) -> str:
     if item.proposed_is_draw:
-        return "<b>ничья</b>"
+        return "<b>🤝 Ничья</b>"
     if item.proposed_winner_name:
-        return f"<b>победа {escape(item.proposed_winner_name)}</b>"
+        return f"<b>🏆 Победа {escape(item.proposed_winner_name)}</b>"
     return "результат не предложен"
 
 
@@ -54,7 +62,7 @@ async def _send_matches_with_actions(update: Update, context: ContextTypes.DEFAU
             f"\nID: <b>{item.match_id}</b>\n"
             f"Соперник: <b>{escape(item.other_name)}</b>\n"
             f"Оружие: <b>{escape(WEAPON_TITLES.get(item.weapon_type, item.weapon_type))}</b>\n"
-            f"Статус: <b>{escape(item.status)}</b>\n"
+            f"Статус: <b>{escape(MATCH_STATUS_LABELS.get(item.status, item.status))}</b>\n"
             f"Результат: {_result_text(item)}\n"
             f"Моё примечание: <b>{escape(item.my_note or '—')}</b>"
         )

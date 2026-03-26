@@ -36,6 +36,14 @@ from bot.services.profile import get_user_by_telegram_id
 
 ASK_INVITE_WEAPON, ASK_INVITE_TARGET, ASK_INVITE_ACCEPT_ID, ASK_INVITE_DECLINE_ID = range(30, 34)
 
+INVITATION_STATUS_LABELS = {
+    "pending": "🟡 Ожидает ответа",
+    "accepted": "🟢 Принята",
+    "declined": "🔴 Возвращена",
+    "expired": "⚫ Истекла",
+    "cancelled": "⚪ Забрана",
+}
+
 
 def _menu_keyboard(update: Update):
     user = update.effective_user
@@ -54,7 +62,7 @@ def _format_list(items, title: str) -> str:
             f"\n{texts.INVITE_LIST_OPPONENT}: <b>{escape(item.other_name)}</b>\n"
             f"{texts.INVITE_LIST_CONTACT}: <b>{escape(contact)}</b>\n"
             f"{texts.INVITE_LIST_WEAPON}: <b>{escape(WEAPON_TITLES.get(item.weapon_type, item.weapon_type))}</b>\n"
-            f"{texts.INVITE_LIST_STATUS}: <b>{escape(item.status)}</b>\n"
+            f"{texts.INVITE_LIST_STATUS}: <b>{escape(INVITATION_STATUS_LABELS.get(item.status, item.status))}</b>\n"
             f"{texts.INVITE_LIST_EXPIRES}: <b>{item.expires_at:%Y-%m-%d}</b>"
         )
     return "\n".join(lines)
