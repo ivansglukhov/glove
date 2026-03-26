@@ -327,8 +327,9 @@ async def notify_suggestion_created(context: ContextTypes.DEFAULT_TYPE, from_tel
 
 
 async def notify_mail_received(context: ContextTypes.DEFAULT_TYPE, sender, recipient, message) -> None:
+    sender_name = "Ваша любимая администрация" if getattr(sender, "is_admin", False) else sender.full_name
     text = (
-        f"курлык, у вас новый голубь от {escape(sender.full_name)}\n\n"
+        f"курлык, у вас новый голубь от {escape(sender_name)}\n\n"
         f"ID сообщения: {message.id}\n\n"
         f"{escape(message.text)}"
     )

@@ -5,6 +5,7 @@ from html import escape
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
+from bot.config import get_settings
 from bot.keyboards.main import cancel_keyboard, mail_actions_inline, mail_keyboard, search_mode_keyboard
 from bot.services.mail import (
     create_mail_message,
@@ -36,7 +37,9 @@ async def send_pigeon_start(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user = update.effective_user
     if not user or not update.effective_message:
         return ConversationHandler.END
-    if get_user_by_telegram_id(user.id) is None:
+    profile = get_user_by_telegram_id(user.id)
+    settings = get_settings()
+    if profile is None and user.id != settings.admin_telegram_id:
         await update.effective_message.reply_text("Сначала заполните профиль.", reply_markup=cancel_keyboard())
         return ConversationHandler.END
     context.user_data["mail"] = {}
@@ -82,6 +85,14 @@ async def run_mail_search(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user = update.effective_user
     payload = context.user_data.get("mail", {})
     mode = payload["mode"]
+    profile = get_user_by_telegram_id(user.id)
+    settings = get_settings()
+    if profile is None and user.id == settings.admin_telegram_id and mode in {"city", "own_club"}:
+        await update.effective_message.reply_text(
+            "Для этого режима админу нужен профиль. Используйте поиск по клубу или ФИО.",
+            reply_markup=search_mode_keyboard(),
+        )
+        return ASK_MAIL_MODE
     if mode == "city":
         results = search_mail_recipients_by_filters(requester_telegram_id=user.id)
     elif mode == "own_club":

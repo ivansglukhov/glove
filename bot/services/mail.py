@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
+from bot.config import get_settings
 from bot.db import session_scope
 from bot.models import MailMessage, User
 
@@ -26,6 +27,8 @@ class MailMessageView:
 
 
 def _display_name(user: User) -> str:
+    if user.is_admin:
+        return "Ваша любимая администрация"
     return user.full_name
 
 
@@ -54,20 +57,17 @@ def search_mail_recipients_by_filters(
             .where(User.telegram_id == requester_telegram_id, User.is_active.is_(True))
             .options(selectinload(User.club))
         ).scalar_one_or_none()
-        if requester is None:
+        if requester is None and club_name is None and not own_club_only:
             return []
 
-        users = session.execute(
-            select(User)
-            .where(
-                User.is_active.is_(True),
-                User.telegram_id != requester_telegram_id,
-                User.city == requester.city,
-            )
-            .options(selectinload(User.club))
-        ).scalars().all()
+        stmt = select(User).where(User.is_active.is_(True), User.telegram_id != requester_telegram_id).options(selectinload(User.club))
+        if requester is not None and club_name is None and not own_club_only:
+            stmt = stmt.where(User.city == requester.city)
+        users = session.execute(stmt).scalars().all()
 
         if own_club_only:
+            if requester is None:
+                return []
             if requester.club_id is not None:
                 users = [user for user in users if user.club_id == requester.club_id]
             elif requester.custom_club_name:
@@ -109,6 +109,17 @@ def search_mail_recipients_by_full_name(*, full_name_query: str) -> list[MailRec
 def create_mail_message(*, from_telegram_id: int, to_telegram_id: int, text: str) -> tuple[MailMessage | None, User | None, User | None]:
     with session_scope() as session:
         sender = session.execute(select(User).where(User.telegram_id == from_telegram_id)).scalar_one_or_none()
+        settings = get_settings()
+        if sender is None and from_telegram_id == settings.admin_telegram_id:
+            sender = User(
+                telegram_id=from_telegram_id,
+                full_name="Ваша любимая администрация",
+                city="Система",
+                is_admin=True,
+                is_active=True,
+            )
+            session.add(sender)
+            session.flush()
         recipient = session.execute(select(User).where(User.telegram_id == to_telegram_id)).scalar_one_or_none()
         if sender is None or recipient is None or sender.id == recipient.id:
             return None, sender, recipient
