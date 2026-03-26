@@ -66,9 +66,8 @@ def _is_broken_text(value: str | None) -> bool:
 
 
 def _display_name(user: User) -> str:
-    for candidate in (user.full_name, user.display_name, user.username):
-        if not _is_broken_text(candidate):
-            return candidate.strip()
+    if not _is_broken_text(user.full_name):
+        return user.full_name.strip()
     return "Пользователь"
 
 

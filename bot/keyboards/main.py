@@ -8,8 +8,8 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
         [
             [KeyboardButton("Профиль")],
             [KeyboardButton("Перчаточная"), KeyboardButton("Мои бои")],
-            [KeyboardButton("Статистика"), KeyboardButton("Пожаловаться")],
-            [KeyboardButton("Предложить")],
+            [KeyboardButton("Почта"), KeyboardButton("Написать админу")],
+            [KeyboardButton("Статистика")],
         ],
         resize_keyboard=True,
     )
@@ -18,6 +18,7 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
 def admin_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
+            [KeyboardButton("Почта")],
             [KeyboardButton("Жалобы"), KeyboardButton("Предложения")],
             [KeyboardButton("Спорные бои"), KeyboardButton("Решить спорный бой")],
             [KeyboardButton("Пользователи"), KeyboardButton("Матчи")],
@@ -54,6 +55,16 @@ def matches_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton("Список боёв")],
             [KeyboardButton("Предложить результат")],
             [KeyboardButton("Подтвердить результат"), KeyboardButton("Оспорить результат")],
+            [KeyboardButton("В меню")],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def mail_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [
+            [KeyboardButton("Отправить голубя"), KeyboardButton("Входящие")],
             [KeyboardButton("В меню")],
         ],
         resize_keyboard=True,
@@ -125,7 +136,7 @@ def search_mode_keyboard() -> ReplyKeyboardMarkup:
         [
             [KeyboardButton("По городу"), KeyboardButton("По моему клубу")],
             [KeyboardButton("По конкретному клубу")],
-            [KeyboardButton("По @username"), KeyboardButton("По ФИО")],
+            [KeyboardButton("По ФИО")],
             [KeyboardButton("Отмена")],
         ],
         resize_keyboard=True,
@@ -153,6 +164,10 @@ def search_result_actions_inline(weapon_type: str, telegram_id: int) -> InlineKe
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton("Бросить перчатку", callback_data=f"srch:invite:{weapon_type}:{telegram_id}")]]
     )
+
+
+def mail_actions_inline(message_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[InlineKeyboardButton("Удалить", callback_data=f"mail:delete:{message_id}")]])
 
 
 def match_actions_inline(match_id: int, can_propose: bool, can_confirm: bool) -> InlineKeyboardMarkup | None:

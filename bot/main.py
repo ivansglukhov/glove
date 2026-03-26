@@ -36,6 +36,23 @@ from bot.handlers.feedback import (
     suggestion_start,
     suggestion_text_input,
 )
+from bot.handlers.mail import (
+    ASK_MAIL_CLUB,
+    ASK_MAIL_MODE,
+    ASK_MAIL_QUERY,
+    ASK_MAIL_RECIPIENT,
+    ASK_MAIL_TEXT,
+    cancel_mail,
+    incoming_mail,
+    mail_callback,
+    mail_choose_mode,
+    mail_club_input,
+    mail_entry,
+    mail_query_input,
+    mail_recipient_input,
+    mail_text_input,
+    send_pigeon_start,
+)
 from bot.handlers.invitations import (
     ASK_INVITE_ACCEPT_ID,
     ASK_INVITE_DECLINE_ID,
@@ -187,8 +204,7 @@ def build_application() -> Application:
 
     feedback_conversation = ConversationHandler(
         entry_points=[
-            MessageHandler(filters.Regex("^Пожаловаться$"), complaint_start),
-            MessageHandler(filters.Regex("^Предложить$"), suggestion_start),
+            MessageHandler(filters.Regex("^Написать админу$"), suggestion_start),
         ],
         states={
             ASK_COMPLAINT_CONTEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, complaint_context_input)],
@@ -196,6 +212,22 @@ def build_application() -> Application:
             ASK_SUGGESTION_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, suggestion_text_input)],
         },
         fallbacks=[MessageHandler(filters.Regex("^Отмена$"), cancel_feedback)],
+    )
+
+    mail_conversation = ConversationHandler(
+        entry_points=[
+            MessageHandler(filters.Regex("^Почта$"), mail_entry),
+            MessageHandler(filters.Regex("^Отправить голубя$"), send_pigeon_start),
+            MessageHandler(filters.Regex("^Входящие$"), incoming_mail),
+        ],
+        states={
+            ASK_MAIL_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_choose_mode)],
+            ASK_MAIL_CLUB: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_club_input)],
+            ASK_MAIL_QUERY: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_query_input)],
+            ASK_MAIL_RECIPIENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_recipient_input)],
+            ASK_MAIL_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_text_input)],
+        },
+        fallbacks=[MessageHandler(filters.Regex("^Отмена$"), cancel_mail)],
     )
 
     admin_conversation = ConversationHandler(
@@ -212,11 +244,13 @@ def build_application() -> Application:
     application.add_handler(invitation_conversation)
     application.add_handler(match_conversation)
     application.add_handler(feedback_conversation)
+    application.add_handler(mail_conversation)
     application.add_handler(admin_conversation)
 
     application.add_handler(CallbackQueryHandler(invitation_callback, pattern=r"^inv:"))
     application.add_handler(CallbackQueryHandler(match_callback, pattern=r"^match:"))
     application.add_handler(CallbackQueryHandler(search_callback, pattern=r"^srch:"))
+    application.add_handler(CallbackQueryHandler(mail_callback, pattern=r"^mail:"))
 
     application.add_handler(MessageHandler(filters.Regex("^Статистика$"), stats_entry))
     application.add_handler(MessageHandler(filters.Regex("^Жалобы$"), admin_complaints))

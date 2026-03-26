@@ -56,8 +56,7 @@ def _format_list(items, title: str) -> str:
         return f"{title}\n\n{texts.INVITE_EMPTY_LIST}"
     lines = [title]
     for item in items[:10]:
-        username = f"@{item.other_username}" if item.other_username else texts.INVITE_NO_USERNAME
-        contact = username if item.other_telegram_id else (item.external_text or texts.INVITE_EXTERNAL_USER)
+        contact = item.external_text or texts.INVITE_EXTERNAL_USER if not item.other_telegram_id else "Зарегистрированный пользователь"
         lines.append(
             f"\n{texts.INVITE_LIST_OPPONENT}: <b>{escape(item.other_name)}</b>\n"
             f"{texts.INVITE_LIST_CONTACT}: <b>{escape(contact)}</b>\n"
@@ -155,7 +154,7 @@ async def invitation_target_input(update: Update, context: ContextTypes.DEFAULT_
         context.user_data.pop("invite", None)
         return ConversationHandler.END
     if result.status == "ambiguous":
-        variants = [f"- {user.full_name} (@{user.username})" if user.username else f"- {user.full_name}" for user in result.matches[:10]]
+        variants = [f"- {user.full_name}" for user in result.matches[:10]]
         await update.effective_message.reply_text(
             texts.INVITE_AMBIGUOUS_HEADER + "\n\n" + "\n".join(variants),
             reply_markup=invitations_keyboard(),
@@ -164,7 +163,7 @@ async def invitation_target_input(update: Update, context: ContextTypes.DEFAULT_
         return ConversationHandler.END
     if result.status == "created":
         await update.effective_message.reply_text(
-            f"{texts.INVITE_CREATED_PREFIX} {result.invitee.display_name or result.invitee.full_name}.",
+            f"{texts.INVITE_CREATED_PREFIX} {result.invitee.full_name}.",
             reply_markup=invitations_keyboard(),
         )
         await notify_invitation_created(context, inviter, result.invitee, result.invitation)

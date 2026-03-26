@@ -44,7 +44,7 @@ class AutoDrawRecord:
 
 
 def _display_name(user: User) -> str:
-    return user.display_name or user.full_name
+    return user.full_name
 
 
 def create_match_from_invitation(invitation_id: int) -> Match | None:

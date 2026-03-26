@@ -45,7 +45,6 @@ def _profile_text(user) -> str:
     weapons_block = "\n".join(weapon_lines) if weapon_lines else "- Оружия пока не выбраны"
     return (
         "Ваш профиль:\n"
-        f"Имя: {user.display_name or 'Не указано'}\n"
         f"ФИО: {user.full_name}\n"
         f"Город: {user.city}\n"
         f"Клуб: {club_name}\n"

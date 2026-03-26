@@ -72,7 +72,7 @@ async def suggestion_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if get_user_by_telegram_id(user.id) is None:
         await update.message.reply_text("Сначала заполните профиль.", reply_markup=cancel_keyboard())
         return ConversationHandler.END
-    await update.message.reply_text("Напишите предложение одним сообщением.", reply_markup=cancel_keyboard())
+    await update.message.reply_text("Напишите сообщение админу одним сообщением.", reply_markup=cancel_keyboard())
     return ASK_SUGGESTION_TEXT
 
 
@@ -85,7 +85,7 @@ async def suggestion_text_input(update: Update, context: ContextTypes.DEFAULT_TY
     if suggestion is None:
         await update.message.reply_text("Не удалось сохранить предложение.", reply_markup=_menu_keyboard(update))
         return ConversationHandler.END
-    await update.message.reply_text("Предложение отправлено разработчикам.", reply_markup=_menu_keyboard(update))
+    await update.message.reply_text("Сообщение отправлено админу.", reply_markup=_menu_keyboard(update))
     await notify_suggestion_created(context, user.id, suggestion)
     return ConversationHandler.END
 

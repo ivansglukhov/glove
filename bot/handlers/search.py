@@ -20,7 +20,7 @@ from bot.keyboards.main import (
 from bot.services.invitations import create_invitation
 from bot.services.notifications import notify_external_invitation_created, notify_invitation_created
 from bot.services.profile import get_user_by_telegram_id
-from bot.services.search import search_by_filters, search_by_full_name, search_by_username
+from bot.services.search import search_by_filters, search_by_full_name
 
 
 ASK_SEARCH_WEAPON, ASK_SEARCH_MODE, ASK_SEARCH_CLUB, ASK_SEARCH_QUERY = range(20, 24)
@@ -29,7 +29,6 @@ SEARCH_MODES = {
     "По городу": "city",
     "По моему клубу": "own_club",
     "По конкретному клубу": "club",
-    "По @username": "username",
     "По ФИО": "full_name",
 }
 
@@ -40,20 +39,12 @@ def _menu_keyboard(update: Update):
     return menu_keyboard_for_role(bool(user and user.id == settings.admin_telegram_id))
 
 
-def _value(text: str | None, fallback: str) -> str:
-    if text:
-        return escape(text)
-    return fallback
-
-
 def _format_result(item, index: int) -> str:
     card = item.card
     readiness = READINESS_TITLES.get(card.readiness_status, card.readiness_status)
-    username = f"@{card.username}" if card.username else "без username"
     return (
-        f"<b>{index}. {_value(card.display_name, escape(card.full_name))}</b>\n"
+        f"<b>{index}. {escape(card.full_name)}</b>\n"
         f"<b>ФИО:</b> {escape(card.full_name)}\n"
-        f"<b>Username:</b> {escape(username)}\n"
         f"<b>Клуб:</b> {escape(card.club_name)}\n"
         f"<b>Город:</b> {escape(card.city)}\n"
         f"<b>Оружие:</b> {escape(WEAPON_TITLES.get(card.weapon_type, card.weapon_type))}\n"
@@ -109,10 +100,6 @@ async def choose_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if mode == "club":
         await update.message.reply_text(texts.SEARCH_ENTER_CLUB, reply_markup=cancel_keyboard())
         return ASK_SEARCH_CLUB
-    if mode == "username":
-        await update.message.reply_text(texts.SEARCH_ENTER_USERNAME, reply_markup=cancel_keyboard())
-        return ASK_SEARCH_QUERY
-
     await update.message.reply_text(texts.SEARCH_ENTER_FULL_NAME, reply_markup=cancel_keyboard())
     return ASK_SEARCH_QUERY
 
@@ -149,8 +136,6 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             weapon_type=weapon_type,
             club_name=payload.get("club_name"),
         )
-    elif mode == "username":
-        results = search_by_username(username=payload.get("query", ""), weapon_type=weapon_type)
     else:
         results = search_by_full_name(full_name_query=payload.get("query", ""), weapon_type=weapon_type)
 
@@ -207,7 +192,7 @@ async def search_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if result.status == "created":
         await query.edit_message_reply_markup(reply_markup=None)
         await query.message.reply_text(
-            f"{texts.INVITE_CREATED_PREFIX} <b>{escape(result.invitee.display_name or result.invitee.full_name)}</b>.",
+            f"{texts.INVITE_CREATED_PREFIX} <b>{escape(result.invitee.full_name)}</b>.",
             parse_mode="HTML",
         )
         await notify_invitation_created(context, inviter, result.invitee, result.invitation)
