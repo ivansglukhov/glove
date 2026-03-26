@@ -10,6 +10,7 @@ from bot.db import engine
 from bot.handlers.admin import (
     ASK_ADMIN_MATCH_ID,
     ASK_ADMIN_RESOLUTION,
+    admin_callback,
     admin_cancel,
     admin_complaints,
     admin_disputed_matches,
@@ -251,6 +252,7 @@ def build_application() -> Application:
     application.add_handler(CallbackQueryHandler(match_callback, pattern=r"^match:"))
     application.add_handler(CallbackQueryHandler(search_callback, pattern=r"^srch:"))
     application.add_handler(CallbackQueryHandler(mail_callback, pattern=r"^mail:"))
+    application.add_handler(CallbackQueryHandler(admin_callback, pattern=r"^admin:"))
 
     application.add_handler(MessageHandler(filters.Regex("^Статистика$"), stats_entry))
     application.add_handler(MessageHandler(filters.Regex("^Жалобы$"), admin_complaints))

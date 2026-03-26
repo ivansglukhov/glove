@@ -19,8 +19,8 @@ def admin_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
             [KeyboardButton("Почта")],
-            [KeyboardButton("Жалобы"), KeyboardButton("Предложения")],
-            [KeyboardButton("Спорные бои"), KeyboardButton("Решить спорный бой")],
+            [KeyboardButton("Предложения")],
+            [KeyboardButton("Спорные бои")],
             [KeyboardButton("Пользователи"), KeyboardButton("Матчи")],
             [KeyboardButton("События"), KeyboardButton("В меню")],
         ],
@@ -168,6 +168,24 @@ def search_result_actions_inline(weapon_type: str, telegram_id: int) -> InlineKe
 
 def mail_actions_inline(message_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[InlineKeyboardButton("Удалить", callback_data=f"mail:delete:{message_id}")]])
+
+
+def admin_disputed_match_actions_inline(match_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Решить спорный бой", callback_data=f"admin:resolve_pick:{match_id}")]]
+    )
+
+
+def admin_resolve_inline(match_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Победа A", callback_data=f"admin:resolve:a:{match_id}"),
+                InlineKeyboardButton("Победа B", callback_data=f"admin:resolve:b:{match_id}"),
+            ],
+            [InlineKeyboardButton("Ничья", callback_data=f"admin:resolve:draw:{match_id}")],
+        ]
+    )
 
 
 def match_actions_inline(match_id: int, can_propose: bool, can_confirm: bool) -> InlineKeyboardMarkup | None:

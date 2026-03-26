@@ -1,10 +1,18 @@
 ﻿from __future__ import annotations
 
+from html import escape
+
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from bot.config import get_settings
-from bot.keyboards.main import admin_menu_keyboard, admin_resolve_keyboard, cancel_keyboard
+from bot.keyboards.main import (
+    admin_disputed_match_actions_inline,
+    admin_menu_keyboard,
+    admin_resolve_inline,
+    admin_resolve_keyboard,
+    cancel_keyboard,
+)
 from bot.services.admin import get_event_summary, list_matches, list_users
 from bot.services.feedback import list_complaints, list_suggestions
 from bot.services.matches import admin_resolve_match
@@ -91,15 +99,17 @@ async def admin_disputed_matches(update: Update, context: ContextTypes.DEFAULT_T
     if not items:
         await update.message.reply_text("Спорных боёв пока нет.", reply_markup=admin_menu_keyboard())
         return
-    text = "Спорные бои"
+    await update.message.reply_text("Спорные бои", reply_markup=admin_menu_keyboard())
     for item in items:
-        text += (
-            f"\n\nID: {item.match_id}\n"
-            f"Статус: {item.status}\n"
-            f"Оружие: {item.weapon_type}\n"
-            f"Участники: {item.fighter_a} vs {item.fighter_b}"
+        await update.message.reply_text(
+            (
+                f"ID: <b>{item.match_id}</b>\n"
+                f"Статус: <b>{escape(item.status)}</b>\n"
+                f"Оружие: <b>{escape(item.weapon_type)}</b>\n"
+                f"Участники: <b>{escape(item.fighter_a)}</b> vs <b>{escape(item.fighter_b)}</b>"
+            ),
+            reply_markup=admin_disputed_match_actions_inline(item.match_id),
         )
-    await update.message.reply_text(text, reply_markup=admin_menu_keyboard())
 
 
 async def admin_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -196,3 +206,53 @@ async def admin_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     context.user_data.pop('admin_resolve', None)
     await update.message.reply_text("Действие отменено.", reply_markup=admin_menu_keyboard())
     return ConversationHandler.END
+
+
+async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query or not update.effective_user:
+        return
+    await query.answer()
+
+    if update.effective_user.id != get_settings().admin_telegram_id:
+        await query.edit_message_text("Это действие доступно только администратору.")
+        return
+
+    parts = query.data.split(":")
+    if len(parts) < 3 or parts[0] != "admin":
+        return
+
+    if parts[1] == "resolve_pick" and len(parts) == 3:
+        try:
+            match_id = int(parts[2])
+        except ValueError:
+            return
+        await query.edit_message_reply_markup(reply_markup=admin_resolve_inline(match_id))
+        return
+
+    if len(parts) != 4 or parts[1] != "resolve":
+        return
+
+    outcome = parts[2]
+    try:
+        match_id = int(parts[3])
+    except ValueError:
+        return
+
+    if outcome not in {"a", "b", "draw"}:
+        return
+
+    result = admin_resolve_match(match_id=match_id, outcome=outcome)
+    if result.status == "missing":
+        await query.edit_message_text("Бой не найден.")
+        return
+
+    await query.edit_message_text("Спорный бой завершен решением администратора.")
+    await notify_match_result_confirmed(
+        context,
+        result.actor,
+        result.other,
+        result.match,
+        result.winner,
+        result.match.proposed_is_draw,
+    )
