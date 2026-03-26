@@ -6,7 +6,7 @@ from bot.enums import ReadinessStatus, WeaponType
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
-            [KeyboardButton("Профиль"), KeyboardButton("Найти соперника")],
+            [KeyboardButton("Профиль")],
             [KeyboardButton("Перчаточная"), KeyboardButton("Мои бои")],
             [KeyboardButton("Статистика"), KeyboardButton("Пожаловаться")],
             [KeyboardButton("Предложить")],

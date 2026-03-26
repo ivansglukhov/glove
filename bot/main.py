@@ -39,8 +39,6 @@ from bot.handlers.feedback import (
 from bot.handlers.invitations import (
     ASK_INVITE_ACCEPT_ID,
     ASK_INVITE_DECLINE_ID,
-    ASK_INVITE_TARGET,
-    ASK_INVITE_WEAPON,
     accept_invitation_input,
     accept_invitation_start,
     cancel_invitations,
@@ -49,9 +47,6 @@ from bot.handlers.invitations import (
     incoming_invitations,
     invitation_callback,
     invitations_entry,
-    invitation_choose_weapon,
-    invitation_target_input,
-    new_invitation_start,
     outgoing_invitations,
 )
 from bot.handlers.matches import (
@@ -147,7 +142,7 @@ def build_application() -> Application:
     )
 
     search_conversation = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^Найти соперника$"), search_entry)],
+        entry_points=[MessageHandler(filters.Regex("^Бросить перчатку$"), search_entry)],
         states={
             ASK_SEARCH_WEAPON: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_weapon)],
             ASK_SEARCH_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, choose_mode)],
@@ -160,15 +155,12 @@ def build_application() -> Application:
     invitation_conversation = ConversationHandler(
         entry_points=[
             MessageHandler(filters.Regex("^Перчаточная$"), invitations_entry),
-            MessageHandler(filters.Regex("^Бросить перчатку$"), new_invitation_start),
             MessageHandler(filters.Regex("^Брошенные мне перчатки$"), incoming_invitations),
             MessageHandler(filters.Regex("^Брошенные перчатки$"), outgoing_invitations),
             MessageHandler(filters.Regex("^Принять перчатку$"), accept_invitation_start),
             MessageHandler(filters.Regex("^Вернуть перчатку$"), decline_invitation_start),
         ],
         states={
-            ASK_INVITE_WEAPON: [MessageHandler(filters.TEXT & ~filters.COMMAND, invitation_choose_weapon)],
-            ASK_INVITE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, invitation_target_input)],
             ASK_INVITE_ACCEPT_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, accept_invitation_input)],
             ASK_INVITE_DECLINE_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, decline_invitation_input)],
         },
