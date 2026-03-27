@@ -116,7 +116,17 @@ from bot.handlers.search import (
     search_callback,
     search_entry,
 )
-from bot.handlers.stats import stats_entry
+from bot.handlers.stats import (
+    ASK_TOP_SCOPE,
+    ASK_TOP_VALUE,
+    ASK_TOP_WEAPON,
+    cancel_stats,
+    stats_entry,
+    top_scope_input,
+    top_start,
+    top_value_input,
+    top_weapon_input,
+)
 from bot.jobs.scheduler import register_jobs
 from bot.models import Base
 
@@ -231,6 +241,19 @@ def build_application() -> Application:
         fallbacks=[MessageHandler(filters.Regex("^Отмена$"), cancel_mail)],
     )
 
+    stats_conversation = ConversationHandler(
+        entry_points=[
+            MessageHandler(filters.Regex("^Статистика$"), stats_entry),
+            MessageHandler(filters.Regex("^Посмотреть топ$"), top_start),
+        ],
+        states={
+            ASK_TOP_WEAPON: [MessageHandler(filters.TEXT & ~filters.COMMAND, top_weapon_input)],
+            ASK_TOP_SCOPE: [MessageHandler(filters.TEXT & ~filters.COMMAND, top_scope_input)],
+            ASK_TOP_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, top_value_input)],
+        },
+        fallbacks=[MessageHandler(filters.Regex("^Отмена$"), cancel_stats)],
+    )
+
     admin_conversation = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex("^Решить спорный бой$"), admin_resolve_start)],
         states={
@@ -246,6 +269,7 @@ def build_application() -> Application:
     application.add_handler(match_conversation)
     application.add_handler(feedback_conversation)
     application.add_handler(mail_conversation)
+    application.add_handler(stats_conversation)
     application.add_handler(admin_conversation)
 
     application.add_handler(CallbackQueryHandler(invitation_callback, pattern=r"^inv:"))
@@ -254,7 +278,6 @@ def build_application() -> Application:
     application.add_handler(CallbackQueryHandler(mail_callback, pattern=r"^mail:"))
     application.add_handler(CallbackQueryHandler(admin_callback, pattern=r"^admin:"))
 
-    application.add_handler(MessageHandler(filters.Regex("^Статистика$"), stats_entry))
     application.add_handler(MessageHandler(filters.Regex("^Жалобы$"), admin_complaints))
     application.add_handler(MessageHandler(filters.Regex("^Предложения$"), admin_suggestions))
     application.add_handler(MessageHandler(filters.Regex("^Спорные бои$"), admin_disputed_matches))

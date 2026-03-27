@@ -2,11 +2,12 @@
 
 from html import escape
 
+from telegram import InlineKeyboardMarkup
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
 from bot.config import get_settings
-from bot.keyboards.main import READINESS_TITLES, WEAPON_TITLES
+from bot.keyboards.main import READINESS_TITLES, WEAPON_TITLES, invitation_actions_inline, match_actions_inline
 from bot.services.profile import get_user_by_telegram_id
 
 
@@ -46,6 +47,23 @@ def _result_text(winner, is_draw: bool) -> str:
     return f"победа {winner.full_name}" if winner else "результат не указан"
 
 
+def _short_admin_copy_text(telegram_id: int, text: str) -> str:
+    user = get_user_by_telegram_id(telegram_id)
+    recipient_name = user.full_name if user is not None else f"Telegram ID {telegram_id}"
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    headline = lines[0] if lines else "Сообщение без текста"
+    details = []
+    for line in lines[1:]:
+        if line.startswith(("ID ", "Оружие:", "Результат:", "От:", "Кому:")):
+            details.append(line)
+        if len(details) == 2:
+            break
+    tail = "\n".join(details)
+    if tail:
+        return f"Копия сообщения\nКому: {recipient_name} ({telegram_id})\n{headline}\n{tail}"
+    return f"Копия сообщения\nКому: {recipient_name} ({telegram_id})\n{headline}"
+
+
 async def send_admin_message(context: ContextTypes.DEFAULT_TYPE, text: str) -> bool:
     settings = get_settings()
     if not settings.admin_telegram_id:
@@ -57,9 +75,17 @@ async def send_admin_message(context: ContextTypes.DEFAULT_TYPE, text: str) -> b
         return False
 
 
-async def send_user_message(context: ContextTypes.DEFAULT_TYPE, telegram_id: int, text: str) -> bool:
+async def send_user_message(
+    context: ContextTypes.DEFAULT_TYPE,
+    telegram_id: int,
+    text: str,
+    reply_markup: InlineKeyboardMarkup | None = None,
+) -> bool:
+    settings = get_settings()
     try:
-        await context.bot.send_message(chat_id=telegram_id, text=text)
+        await context.bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
+        if settings.admin_telegram_id and telegram_id != settings.admin_telegram_id:
+            await send_admin_message(context, _short_admin_copy_text(telegram_id, text))
         return True
     except TelegramError:
         return False
@@ -103,12 +129,11 @@ async def notify_invitation_created(context: ContextTypes.DEFAULT_TYPE, inviter,
     invitee_text = (
         "Вам бросили перчатку.\n\n"
         f"От: {_public_name(inviter)}\n"
-        f"ФИО: {inviter.full_name}\n"
         f"Клуб: {_club_text(inviter)}\n"
         f"Город: {inviter.city}\n"
         f"Оружие: {weapon}\n"
         f"ID перчатки: {invitation.id}\n\n"
-        "Зайдите в раздел 'Мои приглашения', чтобы принять перчатку или вернуть ее."
+        "Пройдите в перчаточную, чтобы принять перчатку или вернуть ее."
     )
     admin_text = (
         "Брошена новая перчатка\n\n"
@@ -118,7 +143,12 @@ async def notify_invitation_created(context: ContextTypes.DEFAULT_TYPE, inviter,
         f"Оружие: {weapon}"
     )
     await send_user_message(context, inviter.telegram_id, inviter_text)
-    await send_user_message(context, invitee.telegram_id, invitee_text)
+    await send_user_message(
+        context,
+        invitee.telegram_id,
+        invitee_text,
+        reply_markup=invitation_actions_inline(invitation.id),
+    )
     await send_admin_message(context, admin_text)
 
 
@@ -218,8 +248,9 @@ async def notify_match_created(context: ContextTypes.DEFAULT_TYPE, inviter, invi
         f"Участники: {_public_name(inviter)} ({inviter.telegram_id}) vs {_public_name(invitee)} ({invitee.telegram_id})\n"
         f"Оружие: {weapon}"
     )
-    await send_user_message(context, inviter.telegram_id, text)
-    await send_user_message(context, invitee.telegram_id, other_text)
+    result_markup = match_actions_inline(match.id, can_propose=True, can_confirm=False)
+    await send_user_message(context, inviter.telegram_id, text, reply_markup=result_markup)
+    await send_user_message(context, invitee.telegram_id, other_text, reply_markup=result_markup)
     await send_admin_message(context, admin_text)
 
 
@@ -373,7 +404,7 @@ async def notify_external_invitation_linked(context: ContextTypes.DEFAULT_TYPE, 
         f"ID перчатки: {invitation.id}\n"
         f"От: {_public_name(inviter)}\n"
         f"Оружие: {weapon}\n\n"
-        "Зайдите в раздел 'Мои приглашения', чтобы принять перчатку или вернуть ее."
+        "Пройдите в перчаточную, чтобы принять перчатку или вернуть ее."
     )
     admin_text = (
         "Внешняя перчатка привязана\n\n"

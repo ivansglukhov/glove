@@ -95,14 +95,20 @@ def search_mail_recipients_by_username(*, username: str) -> list[MailRecipientVi
 
 
 def search_mail_recipients_by_full_name(*, full_name_query: str) -> list[MailRecipientView]:
-    query = f"%{full_name_query.strip()}%"
+    normalized_query = full_name_query.strip().lower()
+    if not normalized_query:
+        return []
     with session_scope() as session:
-        users = session.execute(
-            select(User)
-            .where(User.full_name.ilike(query), User.is_active.is_(True))
-            .options(selectinload(User.club))
-            .order_by(User.full_name.asc())
-        ).scalars().all()
+        users = [
+            user
+            for user in session.execute(
+                select(User)
+                .where(User.is_active.is_(True))
+                .options(selectinload(User.club))
+                .order_by(User.full_name.asc())
+            ).scalars().all()
+            if normalized_query in user.full_name.lower()
+        ]
         return [_recipient_view(user) for user in users]
 
 

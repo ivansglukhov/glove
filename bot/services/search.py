@@ -159,13 +159,18 @@ def search_by_username(*, username: str, weapon_type: str) -> list[SearchResult]
 
 
 def search_by_full_name(*, full_name_query: str, weapon_type: str) -> list[SearchResult]:
-    query = f"%{full_name_query.strip()}%"
+    normalized_query = full_name_query.strip().lower()
+    if not normalized_query:
+        return []
     with session_scope() as session:
         stmt = (
             select(User)
-            .where(User.full_name.ilike(query), User.is_active.is_(True))
+            .where(User.is_active.is_(True))
             .options(selectinload(User.club), selectinload(User.weapons), selectinload(User.ratings))
             .order_by(User.full_name.asc())
         )
-        users = session.execute(stmt).scalars().unique().all()
+        users = [
+            user for user in session.execute(stmt).scalars().unique().all()
+            if normalized_query in user.full_name.lower()
+        ]
         return [_to_result(session, user, weapon_type) for user in users]

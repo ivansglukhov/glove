@@ -189,6 +189,21 @@ async def match_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     agree = action == "confirm"
     result = confirm_match_result(actor_telegram_id=update.effective_user.id, match_id=match_id, agree=agree)
+    if result.status == "already_completed":
+        await query.edit_message_text("Этот бой уже завершён.")
+        return
+    if result.status == "missing":
+        await query.edit_message_text("Бой не найден.")
+        return
+    if result.status == "forbidden":
+        await query.edit_message_text("Этот бой вам не принадлежит.")
+        return
+    if result.status == "no_result":
+        await query.edit_message_text("По этому бою еще не предложен результат.")
+        return
+    if result.status == "own_proposal":
+        await query.edit_message_text("Нельзя подтверждать собственное предложение результата.")
+        return
     if result.status not in {"confirmed", "disputed"}:
         await query.edit_message_text("Не удалось обработать действие для этого боя.")
         return

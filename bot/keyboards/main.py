@@ -71,6 +71,40 @@ def mail_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
+def stats_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [
+            [KeyboardButton("Посмотреть топ")],
+            [KeyboardButton("В меню")],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def top_scope_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [
+            [KeyboardButton("По городу"), KeyboardButton("По школе")],
+            [KeyboardButton("Отмена")],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def choice_list_keyboard(items: list[str], row_width: int = 2) -> ReplyKeyboardMarkup:
+    rows: list[list[KeyboardButton]] = []
+    current_row: list[KeyboardButton] = []
+    for item in items:
+        current_row.append(KeyboardButton(item))
+        if len(current_row) == row_width:
+            rows.append(current_row)
+            current_row = []
+    if current_row:
+        rows.append(current_row)
+    rows.append([KeyboardButton("Отмена")])
+    return ReplyKeyboardMarkup(rows, resize_keyboard=True)
+
+
 def result_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
@@ -147,7 +181,7 @@ def invitation_actions_inline(invitation_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Принять перчатку", callback_data=f"inv:accept:{invitation_id}"),
+                InlineKeyboardButton("Принять бой!", callback_data=f"inv:accept:{invitation_id}"),
                 InlineKeyboardButton("Вернуть перчатку", callback_data=f"inv:decline:{invitation_id}"),
             ]
         ]
@@ -193,8 +227,8 @@ def match_actions_inline(match_id: int, can_propose: bool, can_confirm: bool) ->
     if can_propose:
         rows.append(
             [
-                InlineKeyboardButton("Моя победа", callback_data=f"match:propose:self:{match_id}"),
-                InlineKeyboardButton("Победа соперника", callback_data=f"match:propose:other:{match_id}"),
+                InlineKeyboardButton("Я победил", callback_data=f"match:propose:self:{match_id}"),
+                InlineKeyboardButton("Я проиграл", callback_data=f"match:propose:other:{match_id}"),
             ]
         )
         rows.append([InlineKeyboardButton("Ничья", callback_data=f"match:propose:draw:{match_id}")])

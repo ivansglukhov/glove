@@ -214,6 +214,8 @@ def confirm_match_result(*, actor_telegram_id: int, match_id: int, agree: bool) 
             return MatchResultAction(status="missing")
         if actor.id not in {match.fighter_a_id, match.fighter_b_id}:
             return MatchResultAction(status="forbidden")
+        if match.status in {MatchStatus.COMPLETED.value, MatchStatus.AUTO_DRAW.value}:
+            return MatchResultAction(status="already_completed", match=match)
         if match.result_proposed_by_user_id is None:
             return MatchResultAction(status="no_result", match=match)
         if match.result_proposed_by_user_id == actor.id:
