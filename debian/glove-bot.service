@@ -1,0 +1,15 @@
+[Unit]
+Description=Glove Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__PROJECT_DIR__
+EnvironmentFile=__PROJECT_DIR__/.env
+ExecStart=__PROJECT_DIR__/.venv/bin/python -m bot.main
+Restart=always
+RestartSec=5
+User=__SERVICE_USER__
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+2026-03-30 02:18:57,767 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-30 02:18:57,767 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-30 02:19:08,812 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-30 02:19:08,813 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-03-30 02:19:10,320 INFO apscheduler.scheduler Added job "expire_invitations" to job store "default"
+2026-03-30 02:19:10,320 INFO apscheduler.scheduler Added job "auto_draw_matches" to job store "default"
+2026-03-30 02:19:10,321 INFO apscheduler.scheduler Scheduler started
+2026-03-30 02:20:08,825 INFO apscheduler.executors.default Running job "expire_invitations (trigger: interval[1:00:00], next run at: 2026-03-30 00:20:08 UTC)" (scheduled at 2026-03-29 23:20:08.812454+00:00)
+2026-03-30 02:20:08,836 INFO apscheduler.executors.default Job "expire_invitations (trigger: interval[1:00:00], next run at: 2026-03-30 00:20:08 UTC)" executed successfully
+2026-03-30 02:21:08,827 INFO apscheduler.executors.default Running job "auto_draw_matches (trigger: interval[1:00:00], next run at: 2026-03-30 00:21:08 UTC)" (scheduled at 2026-03-29 23:21:08.813451+00:00)
+2026-03-30 02:21:08,831 INFO apscheduler.executors.default Job "auto_draw_matches (trigger: interval[1:00:00], next run at: 2026-03-30 00:21:08 UTC)" executed successfully
