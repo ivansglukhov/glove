@@ -19,7 +19,7 @@ from bot.keyboards.main import (
 )
 from bot.services.invitations import create_invitation
 from bot.services.notifications import notify_external_invitation_created, notify_invitation_created
-from bot.services.profile import get_user_by_telegram_id
+from bot.services.profile import get_user_by_telegram_id, list_known_city_names, normalize_city_name
 from bot.services.search import search_by_filters, search_by_full_name
 
 
@@ -52,6 +52,26 @@ def _format_result(item, index: int) -> str:
         f"<b>Винрейт:</b> {card.win_rate}%\n"
         f"<b>Рейтинг:</b> {card.rating}"
     )
+
+
+def _numbered_cities_prompt() -> str:
+    cities = list_known_city_names()
+    lines = ["Выберите город.", ""]
+    lines.extend(f"{index}. {city}" for index, city in enumerate(cities, start=1))
+    lines.append("")
+    lines.append("Введите номер из списка или свой вариант.")
+    return "\n".join(lines)
+
+
+def _resolve_city_input(text: str) -> str:
+    cities = list_known_city_names()
+    try:
+        index = int(text)
+    except ValueError:
+        return normalize_city_name(text)
+    if 1 <= index <= len(cities):
+        return normalize_city_name(cities[index - 1])
+    return normalize_city_name(text)
 
 
 async def search_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -95,7 +115,10 @@ async def choose_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         return ASK_SEARCH_MODE
 
     context.user_data["search"]["mode"] = mode
-    if mode in {"city", "own_club"}:
+    if mode == "city":
+        await update.message.reply_text(_numbered_cities_prompt(), reply_markup=cancel_keyboard())
+        return ASK_SEARCH_QUERY
+    if mode == "own_club":
         return await run_search(update, context)
     if mode == "club":
         await update.message.reply_text(texts.SEARCH_ENTER_CLUB, reply_markup=cancel_keyboard())
@@ -116,7 +139,11 @@ async def query_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     text = (update.message.text if update.message else "").strip()
     if not text or text == "Отмена":
         return await cancel_search(update, context)
-    context.user_data["search"]["query"] = text
+    payload = context.user_data["search"]
+    if payload.get("mode") == "city":
+        payload["city_name"] = _resolve_city_input(text)
+    else:
+        payload["query"] = text
     return await run_search(update, context)
 
 
@@ -127,7 +154,11 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     mode = payload["mode"]
 
     if mode == "city":
-        results = search_by_filters(requester_telegram_id=tg_user.id, weapon_type=weapon_type)
+        results = search_by_filters(
+            requester_telegram_id=tg_user.id,
+            weapon_type=weapon_type,
+            city_name=payload.get("city_name"),
+        )
     elif mode == "own_club":
         results = search_by_filters(requester_telegram_id=tg_user.id, weapon_type=weapon_type, own_club_only=True)
     elif mode == "club":

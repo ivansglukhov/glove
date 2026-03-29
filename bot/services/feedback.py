@@ -101,7 +101,7 @@ def list_suggestions() -> list[SuggestionView]:
         return result
 
 
-def list_feedback_items(limit: int = 20) -> list[FeedbackItemView]:
+def list_feedback_items(limit: int | None = None) -> list[FeedbackItemView]:
     with session_scope() as session:
         items: list[FeedbackItemView] = []
 
@@ -136,6 +136,8 @@ def list_feedback_items(limit: int = 20) -> list[FeedbackItemView]:
             )
 
         items.sort(key=lambda item: item.created_at, reverse=True)
+        if limit is None:
+            return items
         return items[:limit]
 
 

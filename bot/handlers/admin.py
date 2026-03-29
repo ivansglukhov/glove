@@ -12,15 +12,17 @@ from bot.keyboards.main import (
     admin_menu_keyboard,
     admin_resolve_inline,
     admin_resolve_keyboard,
+    admin_user_actions_inline,
     cancel_keyboard,
 )
-from bot.services.admin import get_event_summary, list_matches, list_users
+from bot.services.admin import delete_user_data, get_event_summary, list_matches, list_users
 from bot.services.feedback import delete_feedback_item, list_feedback_items
 from bot.services.matches import admin_resolve_match
 from bot.services.notifications import notify_match_result_confirmed
 
 
 ASK_ADMIN_MATCH_ID, ASK_ADMIN_RESOLUTION = range(60, 62)
+MAX_MESSAGE_LENGTH = 3500
 
 
 def _is_admin(update: Update) -> bool:
@@ -31,6 +33,25 @@ def _is_admin(update: Update) -> bool:
 
 def _deny(update: Update):
     return update.message.reply_text("Этот раздел доступен только администратору.")
+
+
+async def _reply_chunks(update: Update, header: str, blocks: list[str]) -> None:
+    if not blocks:
+        await update.message.reply_text(header, reply_markup=admin_menu_keyboard())
+        return
+
+    current = header
+    sent_first = False
+    for block in blocks:
+        candidate = f"{current}\n\n{block}" if current else block
+        if len(candidate) > MAX_MESSAGE_LENGTH and current:
+            await update.message.reply_text(current, reply_markup=admin_menu_keyboard() if not sent_first else None)
+            sent_first = True
+            current = f"{header}\n\n{block}"
+        else:
+            current = candidate
+
+    await update.message.reply_text(current, reply_markup=admin_menu_keyboard() if not sent_first else None)
 
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -102,16 +123,15 @@ async def admin_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await _deny(update)
         return
     items = list_users()
-    text = "Пользователи"
+    if not items:
+        await update.message.reply_text("Пользователей пока нет.", reply_markup=admin_menu_keyboard())
+        return
+    await update.message.reply_text("Пользователи", reply_markup=admin_menu_keyboard())
     for item in items:
-        text += (
-            f"\n\n{item.name}\n"
-            f"Telegram ID: {item.telegram_id}\n"
-            f"Город: {item.city}\n"
-            f"Клуб: {item.club}\n"
-            f"Регистрация: {item.registered_at:%Y-%m-%d}"
+        await update.message.reply_text(
+            f"{item.name} - {item.club} - {item.city}\nID: {item.telegram_id}",
+            reply_markup=admin_user_actions_inline(item.telegram_id),
         )
-    await update.message.reply_text(text, reply_markup=admin_menu_keyboard())
 
 
 async def admin_matches(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -119,15 +139,15 @@ async def admin_matches(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await _deny(update)
         return
     items = list_matches()
-    text = "Матчи"
+    blocks = []
     for item in items:
-        text += (
-            f"\n\nID: {item.match_id}\n"
+        blocks.append(
+            f"ID: {item.match_id}\n"
             f"Статус: {item.status}\n"
             f"Оружие: {item.weapon_type}\n"
             f"Участники: {item.fighter_a} vs {item.fighter_b}"
         )
-    await update.message.reply_text(text, reply_markup=admin_menu_keyboard())
+    await _reply_chunks(update, "Матчи", blocks)
 
 
 async def admin_events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -224,6 +244,17 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await query.edit_message_text("Не удалось удалить обращение.")
             return
         await query.edit_message_text("Обращение удалено.")
+        return
+
+    if parts[1] == "user_delete" and len(parts) == 3:
+        try:
+            telegram_id = int(parts[2])
+        except ValueError:
+            return
+        if not delete_user_data(telegram_id):
+            await query.edit_message_text("Не удалось удалить пользователя.")
+            return
+        await query.edit_message_text("Пользователь удален.")
         return
 
     if len(parts) != 4 or parts[1] != "resolve":

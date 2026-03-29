@@ -27,6 +27,7 @@ from bot.services.profile import (
 
 
 ASK_FULL_NAME, ASK_CITY, ASK_CLUB, ASK_WEAPONS, ASK_WEAPON_STATUS, ASK_STATUS_EDIT = range(6)
+RESERVED_FULL_NAMES = {"ваша любимая администрация"}
 
 
 def _is_admin(update: Update) -> bool:
@@ -38,6 +39,13 @@ def _is_admin(update: Update) -> bool:
 def _display_name(update: Update) -> str | None:
     user = update.effective_user
     return user.full_name if user else None
+
+
+def _target_telegram_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int | None:
+    user = update.effective_user
+    if user is None:
+        return None
+    return context.user_data.get("profile_target_telegram_id", user.id)
 
 
 def _profile_text(user) -> str:
@@ -104,8 +112,38 @@ async def profile_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 
 async def register_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data.pop("profile_target_telegram_id", None)
     if update.message:
         await update.message.reply_text("Введите ваше ФИО.", reply_markup=cancel_keyboard())
+    return ASK_FULL_NAME
+
+
+async def admin_edit_profile_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    settings = get_settings()
+    if not query or not update.effective_user or update.effective_user.id != settings.admin_telegram_id:
+        return ConversationHandler.END
+    await query.answer()
+    parts = query.data.split(":")
+    if len(parts) != 3 or parts[0] != "admin" or parts[1] != "user_edit":
+        return ConversationHandler.END
+    try:
+        telegram_id = int(parts[2])
+    except ValueError:
+        return ConversationHandler.END
+
+    user = get_user_by_telegram_id(telegram_id)
+    if user is None:
+        await query.edit_message_text("Пользователь не найден.")
+        return ConversationHandler.END
+
+    context.user_data["profile_target_telegram_id"] = telegram_id
+    await query.message.reply_text(
+        "Редактирование профиля пользователя.\n\n"
+        f"{_profile_text(user)}\n\n"
+        "Введите новое ФИО.",
+        reply_markup=cancel_keyboard(),
+    )
     return ASK_FULL_NAME
 
 
@@ -113,6 +151,12 @@ async def ask_city(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = (update.message.text if update.message else "").strip()
     if not text or text == "Отмена":
         return await cancel_profile(update, context)
+    if text.casefold() in RESERVED_FULL_NAMES:
+        await update.message.reply_text(
+            "Это имя зарезервировано. Введите настоящее ФИО.",
+            reply_markup=cancel_keyboard(),
+        )
+        return ASK_FULL_NAME
     city_options = list_known_city_names()
     context.user_data["profile_form"] = {"full_name": text, "city_options": city_options}
     await update.message.reply_text(
@@ -215,11 +259,12 @@ async def collect_weapon_statuses(update: Update, context: ContextTypes.DEFAULT_
 async def finish_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     form = context.user_data.get("profile_form", {})
     tg_user = update.effective_user
-    existing_user = get_user_by_telegram_id(tg_user.id)
+    target_telegram_id = _target_telegram_id(update, context)
+    existing_user = get_user_by_telegram_id(target_telegram_id)
     user = upsert_user_profile(
-        telegram_id=tg_user.id,
-        username=tg_user.username,
-        display_name=_display_name(update),
+        telegram_id=target_telegram_id,
+        username=existing_user.username if existing_user is not None else tg_user.username,
+        display_name=existing_user.display_name if existing_user is not None and target_telegram_id != tg_user.id else _display_name(update),
         full_name=form["full_name"],
         city=form["city"],
         club_name=form.get("club_name"),

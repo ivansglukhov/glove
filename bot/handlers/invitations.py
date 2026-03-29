@@ -55,7 +55,7 @@ def _format_list(items, title: str) -> str:
     if not items:
         return f"{title}\n\n{texts.INVITE_EMPTY_LIST}"
     lines = [title]
-    for item in items[:10]:
+    for item in items:
         contact = item.external_text or texts.INVITE_EXTERNAL_USER if not item.other_telegram_id else "Зарегистрированный пользователь"
         lines.append(
             f"\n{texts.INVITE_LIST_OPPONENT}: <b>{escape(item.other_name)}</b>\n"
@@ -74,7 +74,7 @@ async def _send_incoming_with_actions(update: Update, context: ContextTypes.DEFA
         reply_markup=invitations_keyboard(),
     )
     pending = [item for item in items if item.status == "pending"]
-    for item in pending[:10]:
+    for item in pending:
         await update.effective_message.reply_text(
             texts.INVITE_ACTION_CARD.format(
                 name=f"<b>{escape(item.other_name)}</b>",
@@ -91,7 +91,7 @@ async def _send_outgoing_with_actions(update: Update, context: ContextTypes.DEFA
         reply_markup=invitations_keyboard(),
     )
     pending = [item for item in items if item.status == "pending"]
-    for item in pending[:10]:
+    for item in pending:
         await update.effective_message.reply_text(
             texts.INVITE_OUTGOING_ACTION_CARD.format(
                 name=f"<b>{escape(item.other_name)}</b>",
@@ -109,9 +109,7 @@ async def invitations_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if profile is None:
         await update.effective_message.reply_text(texts.INVITE_PROFILE_REQUIRED, reply_markup=cancel_keyboard())
         return ConversationHandler.END
-
-    await _send_incoming_with_actions(update, context, user.id)
-    await _send_outgoing_with_actions(update, context, user.id)
+    await update.effective_message.reply_text("Перчаточная", reply_markup=invitations_keyboard())
     return ConversationHandler.END
 
 
@@ -154,7 +152,7 @@ async def invitation_target_input(update: Update, context: ContextTypes.DEFAULT_
         context.user_data.pop("invite", None)
         return ConversationHandler.END
     if result.status == "ambiguous":
-        variants = [f"- {user.full_name}" for user in result.matches[:10]]
+        variants = [f"- {user.full_name}" for user in result.matches]
         await update.effective_message.reply_text(
             texts.INVITE_AMBIGUOUS_HEADER + "\n\n" + "\n".join(variants),
             reply_markup=invitations_keyboard(),

@@ -11,6 +11,8 @@ from bot.models import Club, Rating, User, UserWeapon
 
 
 CITY_ALIASES = {
+    "moscow": "Москва",
+    "москва": "Москва",
     "спб": "Санкт-Петербург",
     "санкт петербург": "Санкт-Петербург",
     "санкт-петербург": "Санкт-Петербург",
@@ -24,17 +26,48 @@ CITY_ALIASES = {
     "sankt-petersburg": "Санкт-Петербург",
 }
 
+CLUB_ALIASES = {
+    "mws": "Men With Swords",
+    "men with swords": "Men With Swords",
+    "counter time": "CounterTime",
+    "countertime": "CounterTime",
+    "контрвремя": "CounterTime",
+    "paladin": "FFC Paladin",
+    "паладин": "FFC Paladin",
+    "paladin ffc": "FFC Paladin",
+    "ffc paladin": "FFC Paladin",
+    "ffc paladin, fencing fanatics": "FFC Paladin",
+}
+
 
 def _normalize_spaces(value: str) -> str:
     return re.sub(r"\s+", " ", value.strip())
 
 
+def _is_broken_text(value: str) -> bool:
+    normalized = _normalize_spaces(value)
+    if not normalized:
+        return True
+    if "?" in normalized or "�" in normalized:
+        return True
+    letters = [char for char in normalized if char.isalpha()]
+    return bool(letters) and all(char == letters[0] for char in letters) and letters[0] in {"?", "�"}
+
+
 def normalize_city_name(city: str | None) -> str:
     raw = _normalize_spaces(city or "")
-    if not raw or raw == "-":
+    if not raw or raw == "-" or _is_broken_text(raw):
         return "Не указан"
     normalized_key = raw.replace("-", " ").casefold()
     return CITY_ALIASES.get(normalized_key, raw)
+
+
+def normalize_club_name(club_name: str | None) -> str | None:
+    raw = _normalize_spaces(club_name or "")
+    if not raw or raw == "-" or _is_broken_text(raw):
+        return None
+    normalized_key = raw.replace("-", " ").casefold()
+    return CLUB_ALIASES.get(normalized_key, raw)
 
 
 def list_known_city_names() -> list[str]:
@@ -54,11 +87,15 @@ def list_known_city_names() -> list[str]:
 
 def list_known_club_names() -> list[str]:
     with session_scope() as session:
-        clubs = {item for item in session.execute(select(Club.name)).scalars().all() if item}
+        clubs = {
+            normalized
+            for item in session.execute(select(Club.name)).scalars().all()
+            if (normalized := normalize_club_name(item))
+        }
         clubs.update(
-            item.strip()
+            normalized
             for item in session.execute(select(User.custom_club_name)).scalars().all()
-            if item and item.strip() and item.strip() != "-"
+            if (normalized := normalize_club_name(item))
         )
         return sorted(clubs, key=str.casefold)
 
@@ -94,10 +131,18 @@ def upsert_user_profile(
 
         club = None
         custom_club_name = None
-        if club_name:
-            club = session.execute(select(Club).where(Club.name.ilike(club_name.strip()))).scalar_one_or_none()
+        normalized_club_name = normalize_club_name(club_name)
+        if normalized_club_name:
+            club = next(
+                (
+                    item
+                    for item in session.execute(select(Club)).scalars().all()
+                    if normalize_club_name(item.name) == normalized_club_name
+                ),
+                None,
+            )
             if club is None:
-                custom_club_name = club_name.strip()
+                custom_club_name = normalized_club_name
 
         if user is None:
             user = User(

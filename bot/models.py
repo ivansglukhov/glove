@@ -150,5 +150,8 @@ class MailMessage(Base):
     from_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     to_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     text: Mapped[str] = mapped_column(Text)
+    photo_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    sticker_file_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    broadcast_key: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     is_deleted_by_recipient: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

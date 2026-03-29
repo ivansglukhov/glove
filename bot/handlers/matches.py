@@ -57,7 +57,7 @@ async def _send_matches_with_actions(update: Update, context: ContextTypes.DEFAU
         return
 
     lines = ["Список боёв"]
-    for item in items[:10]:
+    for item in items:
         lines.append(
             f"\nID: <b>{item.match_id}</b>\n"
             f"Соперник: <b>{escape(item.other_name)}</b>\n"
@@ -68,7 +68,7 @@ async def _send_matches_with_actions(update: Update, context: ContextTypes.DEFAU
         )
     await update.effective_message.reply_text("\n".join(lines), reply_markup=matches_keyboard())
 
-    for item in items[:10]:
+    for item in items:
         can_propose = item.status in {"active", "disputed"}
         can_confirm = item.status == "awaiting_confirmation"
         markup = match_actions_inline(item.match_id, can_propose=can_propose, can_confirm=can_confirm)

@@ -4,9 +4,10 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.config import get_settings
-from bot.keyboards.main import menu_keyboard_for_role
+from bot.keyboards.main import menu_keyboard_for_role, onboarding_keyboard
 from bot.services.invitations import claim_external_invitation
 from bot.services.notifications import notify_external_invitation_linked
+from bot.services.profile import get_user_by_telegram_id
 from bot.texts import (
     DEEPLINK_ALREADY_PROCESSED_TEXT,
     DEEPLINK_EXPIRED_TEXT,
@@ -22,6 +23,8 @@ from bot.texts import (
 def _menu_keyboard(update: Update):
     settings = get_settings()
     user = update.effective_user
+    if user and user.id != settings.admin_telegram_id and get_user_by_telegram_id(user.id) is None:
+        return onboarding_keyboard()
     return menu_keyboard_for_role(bool(user and user.id == settings.admin_telegram_id))
 
 

@@ -7,7 +7,7 @@ from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
 from bot.config import get_settings
-from bot.keyboards.main import READINESS_TITLES, WEAPON_TITLES, invitation_actions_inline, match_actions_inline
+from bot.keyboards.main import READINESS_TITLES, WEAPON_TITLES, invitation_actions_inline, mail_actions_inline, match_actions_inline
 from bot.services.profile import get_user_by_telegram_id
 
 
@@ -51,13 +51,6 @@ def _actor_line(user) -> str:
     return f"{_public_name(user)} ({user.telegram_id})"
 
 
-def _short_admin_copy_text(telegram_id: int, text: str) -> str:
-    user = get_user_by_telegram_id(telegram_id)
-    recipient_name = user.full_name if user is not None else f"Telegram ID {telegram_id}"
-    cleaned_text = text.strip() or "Сообщение без текста"
-    return f"Копия сообщения\nКому: {recipient_name} ({telegram_id})\n\n{cleaned_text}"
-
-
 async def send_admin_message(context: ContextTypes.DEFAULT_TYPE, text: str) -> bool:
     settings = get_settings()
     if not settings.admin_telegram_id:
@@ -74,12 +67,25 @@ async def send_user_message(
     telegram_id: int,
     text: str,
     reply_markup: InlineKeyboardMarkup | None = None,
+    photo_file_id: str | None = None,
+    sticker_file_id: str | None = None,
 ) -> bool:
-    settings = get_settings()
     try:
-        await context.bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
-        if settings.admin_telegram_id and telegram_id != settings.admin_telegram_id:
-            await send_admin_message(context, _short_admin_copy_text(telegram_id, text))
+        if photo_file_id:
+            await context.bot.send_photo(
+                chat_id=telegram_id,
+                photo=photo_file_id,
+                caption=text,
+                reply_markup=reply_markup,
+            )
+        elif sticker_file_id:
+            if text:
+                await context.bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
+                await context.bot.send_sticker(chat_id=telegram_id, sticker=sticker_file_id)
+            else:
+                await context.bot.send_sticker(chat_id=telegram_id, sticker=sticker_file_id, reply_markup=reply_markup)
+        else:
+            await context.bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
         return True
     except TelegramError:
         return False
@@ -348,10 +354,18 @@ async def notify_mail_received(context: ContextTypes.DEFAULT_TYPE, sender, recip
     sender_name = "Ваша любимая администрация" if getattr(sender, "is_admin", False) else sender.full_name
     text = (
         f"курлык, у вас новый голубь от {escape(sender_name)}\n\n"
-        f"ID сообщения: {message.id}\n\n"
-        f"{escape(message.text)}"
+        f"ID сообщения: {message.id}"
     )
-    await send_user_message(context, recipient.telegram_id, text)
+    if message.text:
+        text += f"\n\n{escape(message.text)}"
+    await send_user_message(
+        context,
+        recipient.telegram_id,
+        text,
+        reply_markup=mail_actions_inline(message.id),
+        photo_file_id=message.photo_file_id,
+        sticker_file_id=message.sticker_file_id,
+    )
 
 
 async def notify_invitation_expired(context: ContextTypes.DEFAULT_TYPE, inviter, invitee, invitation) -> None:

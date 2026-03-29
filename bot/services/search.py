@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from bot.db import session_scope
 from bot.enums import MatchStatus, ReadinessStatus
 from bot.models import Match, User, UserWeapon
+from bot.services.profile import normalize_city_name, normalize_club_name
 
 
 ACTIVE_SEARCH_STATUSES = {
@@ -39,7 +40,8 @@ class SearchResult:
 
 
 def _club_name(user: User) -> str:
-    return user.club.name if user.club else (user.custom_club_name or "Без клуба")
+    raw_name = user.club.name if user.club else user.custom_club_name
+    return normalize_club_name(raw_name) or "Без клуба"
 
 
 def _rating_for_weapon(user: User, weapon_type: str) -> int:
@@ -91,7 +93,14 @@ def _to_result(session, user: User, weapon_type: str) -> SearchResult:
     return SearchResult(user=user, card=card)
 
 
-def search_by_filters(*, requester_telegram_id: int, weapon_type: str, own_club_only: bool = False, club_name: str | None = None) -> list[SearchResult]:
+def search_by_filters(
+    *,
+    requester_telegram_id: int,
+    weapon_type: str,
+    own_club_only: bool = False,
+    club_name: str | None = None,
+    city_name: str | None = None,
+) -> list[SearchResult]:
     with session_scope() as session:
         requester_stmt = (
             select(User)
@@ -108,7 +117,6 @@ def search_by_filters(*, requester_telegram_id: int, weapon_type: str, own_club_
             .where(
                 User.is_active.is_(True),
                 User.telegram_id != requester_telegram_id,
-                User.city == requester.city,
                 UserWeapon.weapon_type == weapon_type,
                 UserWeapon.readiness_status.in_(list(ACTIVE_SEARCH_STATUSES)),
             )
@@ -116,18 +124,20 @@ def search_by_filters(*, requester_telegram_id: int, weapon_type: str, own_club_
         )
 
         users = session.execute(stmt).scalars().unique().all()
+        requester_city = normalize_city_name(city_name or requester.city)
+        users = [user for user in users if normalize_city_name(user.city) == requester_city]
 
         if own_club_only:
             if requester.club_id is not None:
                 users = [user for user in users if user.club_id == requester.club_id]
             elif requester.custom_club_name:
-                normalized = requester.custom_club_name.strip().casefold()
-                users = [user for user in users if _club_name(user).strip().casefold() == normalized]
+                normalized = normalize_club_name(requester.custom_club_name)
+                users = [user for user in users if _club_name(user) == normalized]
             else:
                 users = []
         elif club_name:
-            normalized = club_name.strip().casefold()
-            users = [user for user in users if _club_name(user).strip().casefold() == normalized]
+            normalized = normalize_club_name(club_name)
+            users = [user for user in users if _club_name(user) == normalized]
 
         users.sort(key=lambda item: (_club_name(item).casefold(), item.city.casefold(), item.full_name.casefold()))
         return [_to_result(session, user, weapon_type) for user in users]

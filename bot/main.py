@@ -2,6 +2,7 @@
 
 import logging
 
+from sqlalchemy import text
 from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, ConversationHandler, Defaults, MessageHandler, filters
 
@@ -52,6 +53,8 @@ from bot.handlers.mail import (
     mail_reply_start,
     mail_recipient_input,
     mail_text_input,
+    outgoing_mail,
+    send_all_start,
     send_pigeon_start,
 )
 from bot.handlers.invitations import (
@@ -92,6 +95,7 @@ from bot.handlers.profile import (
     ASK_STATUS_EDIT,
     ASK_WEAPONS,
     ASK_WEAPON_STATUS,
+    admin_edit_profile_start,
     ask_city,
     ask_club,
     ask_weapons,
@@ -137,12 +141,27 @@ logging.basicConfig(
 )
 
 
+def _ensure_mail_photo_column() -> None:
+    with engine.begin() as connection:
+        columns = {
+            row[1]
+            for row in connection.execute(text("PRAGMA table_info(mail_messages)")).fetchall()
+        }
+        if "photo_file_id" not in columns:
+            connection.execute(text("ALTER TABLE mail_messages ADD COLUMN photo_file_id VARCHAR(255)"))
+        if "sticker_file_id" not in columns:
+            connection.execute(text("ALTER TABLE mail_messages ADD COLUMN sticker_file_id VARCHAR(255)"))
+        if "broadcast_key" not in columns:
+            connection.execute(text("ALTER TABLE mail_messages ADD COLUMN broadcast_key VARCHAR(64)"))
+
+
 def build_application() -> Application:
     settings = get_settings()
     if not settings.bot_token:
         raise RuntimeError("BOT_TOKEN is not configured. Copy .env.example to .env and set BOT_TOKEN.")
 
     Base.metadata.create_all(bind=engine)
+    _ensure_mail_photo_column()
     application = Application.builder().token(settings.bot_token).defaults(Defaults(parse_mode=ParseMode.HTML)).build()
 
     application.add_handler(CommandHandler("start", start))
@@ -154,9 +173,11 @@ def build_application() -> Application:
     profile_conversation = ConversationHandler(
         entry_points=[
             MessageHandler(filters.Regex("^Профиль$"), profile_entry),
+            MessageHandler(filters.Regex("^Заполнить профиль$"), register_start),
             MessageHandler(filters.Regex("^Зарегистрироваться$"), register_start),
             MessageHandler(filters.Regex("^Изменить профиль$"), register_start),
             MessageHandler(filters.Regex("^Статусы оружия$"), edit_statuses_start),
+            CallbackQueryHandler(admin_edit_profile_start, pattern=r"^admin:user_edit:"),
         ],
         states={
             ASK_FULL_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_city)],
@@ -229,15 +250,21 @@ def build_application() -> Application:
         entry_points=[
             MessageHandler(filters.Regex("^Почта$"), mail_entry),
             MessageHandler(filters.Regex("^Отправить голубя$"), send_pigeon_start),
+            MessageHandler(filters.Regex("^Отправить сообщение всем$"), send_all_start),
             MessageHandler(filters.Regex("^Входящие$"), incoming_mail),
-            CallbackQueryHandler(mail_reply_start, pattern=r"^mail:reply:"),
+            MessageHandler(filters.Regex("^Улетевшие$"), outgoing_mail),
+            CallbackQueryHandler(mail_reply_start, pattern=r"^mail:(reply|send):"),
         ],
         states={
             ASK_MAIL_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_choose_mode)],
             ASK_MAIL_CLUB: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_club_input)],
             ASK_MAIL_QUERY: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_query_input)],
             ASK_MAIL_RECIPIENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_recipient_input)],
-            ASK_MAIL_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_text_input)],
+            ASK_MAIL_TEXT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, mail_text_input),
+                MessageHandler(filters.PHOTO, mail_text_input),
+                MessageHandler(filters.Sticker.ALL, mail_text_input),
+            ],
         },
         fallbacks=[MessageHandler(filters.Regex("^Отмена$"), cancel_mail)],
     )

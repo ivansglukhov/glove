@@ -18,11 +18,20 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
 def admin_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
-            [KeyboardButton("Почта")],
+            [KeyboardButton("Почта"), KeyboardButton("Отправить сообщение всем")],
             [KeyboardButton("Обращения")],
             [KeyboardButton("Спорные бои")],
             [KeyboardButton("Пользователи"), KeyboardButton("Матчи")],
             [KeyboardButton("События"), KeyboardButton("В меню")],
+        ],
+        resize_keyboard=True,
+    )
+
+
+def onboarding_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        [
+            [KeyboardButton("Заполнить профиль")],
         ],
         resize_keyboard=True,
     )
@@ -33,7 +42,7 @@ def profile_keyboard(is_registered: bool) -> ReplyKeyboardMarkup:
     if is_registered:
         rows.insert(0, [KeyboardButton("Изменить профиль"), KeyboardButton("Статусы оружия")])
     else:
-        rows.insert(0, [KeyboardButton("Зарегистрироваться")])
+        rows.insert(0, [KeyboardButton("Заполнить профиль")])
     return ReplyKeyboardMarkup(rows, resize_keyboard=True)
 
 
@@ -65,6 +74,7 @@ def mail_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
             [KeyboardButton("Отправить голубя"), KeyboardButton("Входящие")],
+            [KeyboardButton("Улетевшие")],
             [KeyboardButton("В меню")],
         ],
         resize_keyboard=True,
@@ -202,10 +212,10 @@ def search_result_actions_inline(weapon_type: str, telegram_id: int) -> InlineKe
 
 def mail_actions_inline(message_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[
-            InlineKeyboardButton("Ответить", callback_data=f"mail:reply:{message_id}"),
-            InlineKeyboardButton("Удалить", callback_data=f"mail:delete:{message_id}"),
-        ]]
+        [
+            [InlineKeyboardButton("Ответить", callback_data=f"mail:send:{message_id}")],
+            [InlineKeyboardButton("Удалить", callback_data=f"mail:delete:{message_id}")],
+        ]
     )
 
 
@@ -230,6 +240,15 @@ def admin_resolve_inline(match_id: int) -> InlineKeyboardMarkup:
 def admin_feedback_actions_inline(kind: str, item_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton("Удалить", callback_data=f"admin:feedback_delete:{kind}:{item_id}")]]
+    )
+
+
+def admin_user_actions_inline(telegram_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("Изменить профиль", callback_data=f"admin:user_edit:{telegram_id}"),
+            InlineKeyboardButton("Удалить", callback_data=f"admin:user_delete:{telegram_id}"),
+        ]]
     )
 
 
