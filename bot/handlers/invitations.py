@@ -299,5 +299,5 @@ async def _process_invitation_response(update: Update, context: ContextTypes.DEF
 
 async def cancel_invitations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.pop("invite", None)
-    await update.effective_message.reply_text(texts.INVITE_CANCELLED, reply_markup=invitations_keyboard())
+    await update.effective_message.reply_text(texts.INVITE_CANCELLED, reply_markup=_menu_keyboard(update))
     return ConversationHandler.END

@@ -21,6 +21,7 @@ class MailRecipientView:
 @dataclass(slots=True)
 class MailMessageView:
     message_id: int
+    sender_telegram_id: int
     sender_name: str
     text: str
     created_at: object
@@ -71,15 +72,15 @@ def search_mail_recipients_by_filters(
             if requester.club_id is not None:
                 users = [user for user in users if user.club_id == requester.club_id]
             elif requester.custom_club_name:
-                normalized = requester.custom_club_name.strip().lower()
-                users = [user for user in users if _club_name(user).strip().lower() == normalized]
+                normalized = requester.custom_club_name.strip().casefold()
+                users = [user for user in users if _club_name(user).strip().casefold() == normalized]
             else:
                 users = []
         elif club_name:
-            normalized = club_name.strip().lower()
-            users = [user for user in users if _club_name(user).strip().lower() == normalized]
+            normalized = club_name.strip().casefold()
+            users = [user for user in users if _club_name(user).strip().casefold() == normalized]
 
-        users.sort(key=lambda item: (_club_name(item).lower(), item.city.lower(), item.full_name.lower()))
+        users.sort(key=lambda item: (_club_name(item).casefold(), item.city.casefold(), item.full_name.casefold()))
         return [_recipient_view(user) for user in users]
 
 
@@ -95,7 +96,7 @@ def search_mail_recipients_by_username(*, username: str) -> list[MailRecipientVi
 
 
 def search_mail_recipients_by_full_name(*, full_name_query: str) -> list[MailRecipientView]:
-    normalized_query = full_name_query.strip().lower()
+    normalized_query = full_name_query.strip().casefold()
     if not normalized_query:
         return []
     with session_scope() as session:
@@ -107,7 +108,7 @@ def search_mail_recipients_by_full_name(*, full_name_query: str) -> list[MailRec
                 .options(selectinload(User.club))
                 .order_by(User.full_name.asc())
             ).scalars().all()
-            if normalized_query in user.full_name.lower()
+            if normalized_query in user.full_name.casefold()
         ]
         return [_recipient_view(user) for user in users]
 
@@ -155,6 +156,7 @@ def list_incoming_mail(*, recipient_telegram_id: int) -> list[MailMessageView]:
             result.append(
                 MailMessageView(
                     message_id=item.id,
+                    sender_telegram_id=sender.telegram_id,
                     sender_name=_display_name(sender),
                     text=item.text,
                     created_at=item.created_at,

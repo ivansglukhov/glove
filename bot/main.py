@@ -12,16 +12,15 @@ from bot.handlers.admin import (
     ASK_ADMIN_RESOLUTION,
     admin_callback,
     admin_cancel,
-    admin_complaints,
     admin_disputed_matches,
     admin_events,
+    admin_feedback,
     admin_matches,
     admin_panel,
     admin_ping,
     admin_resolve_match_id,
     admin_resolve_outcome,
     admin_resolve_start,
-    admin_suggestions,
     admin_users,
 )
 from bot.handlers.common import help_command, seed_info, start
@@ -50,6 +49,7 @@ from bot.handlers.mail import (
     mail_club_input,
     mail_entry,
     mail_query_input,
+    mail_reply_start,
     mail_recipient_input,
     mail_text_input,
     send_pigeon_start,
@@ -230,6 +230,7 @@ def build_application() -> Application:
             MessageHandler(filters.Regex("^Почта$"), mail_entry),
             MessageHandler(filters.Regex("^Отправить голубя$"), send_pigeon_start),
             MessageHandler(filters.Regex("^Входящие$"), incoming_mail),
+            CallbackQueryHandler(mail_reply_start, pattern=r"^mail:reply:"),
         ],
         states={
             ASK_MAIL_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, mail_choose_mode)],
@@ -278,8 +279,7 @@ def build_application() -> Application:
     application.add_handler(CallbackQueryHandler(mail_callback, pattern=r"^mail:"))
     application.add_handler(CallbackQueryHandler(admin_callback, pattern=r"^admin:"))
 
-    application.add_handler(MessageHandler(filters.Regex("^Жалобы$"), admin_complaints))
-    application.add_handler(MessageHandler(filters.Regex("^Предложения$"), admin_suggestions))
+    application.add_handler(MessageHandler(filters.Regex("^Обращения$"), admin_feedback))
     application.add_handler(MessageHandler(filters.Regex("^Спорные бои$"), admin_disputed_matches))
     application.add_handler(MessageHandler(filters.Regex("^Пользователи$"), admin_users))
     application.add_handler(MessageHandler(filters.Regex("^Матчи$"), admin_matches))

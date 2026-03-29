@@ -269,5 +269,5 @@ async def _finalize_result(update: Update, context: ContextTypes.DEFAULT_TYPE, a
 
 async def cancel_matches(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.pop("match_flow", None)
-    await update.effective_message.reply_text("Действие отменено.", reply_markup=matches_keyboard())
+    await update.effective_message.reply_text("Действие отменено.", reply_markup=_menu_keyboard(update))
     return ConversationHandler.END

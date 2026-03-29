@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 from bot.config import get_settings
-from bot.keyboards.main import cancel_keyboard, mail_actions_inline, mail_keyboard, search_mode_keyboard
+from bot.keyboards.main import cancel_keyboard, mail_actions_inline, mail_keyboard, menu_keyboard_for_role, search_mode_keyboard
 from bot.services.mail import (
     create_mail_message,
     delete_incoming_mail,
@@ -26,6 +26,12 @@ MAIL_MODES = {
     "По конкретному клубу": "club",
     "По ФИО": "full_name",
 }
+
+
+def _menu_keyboard(update: Update):
+    user = update.effective_user
+    settings = get_settings()
+    return menu_keyboard_for_role(bool(user and user.id == settings.admin_telegram_id))
 
 
 async def mail_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -178,6 +184,35 @@ async def incoming_mail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     return ConversationHandler.END
 
 
+async def mail_reply_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    if not query or not update.effective_user:
+        return ConversationHandler.END
+    await query.answer()
+    parts = query.data.split(":")
+    if len(parts) != 3 or parts[0] != "mail" or parts[1] != "reply":
+        return ConversationHandler.END
+    try:
+        message_id = int(parts[2])
+    except ValueError:
+        return ConversationHandler.END
+
+    item = next(
+        (mail for mail in list_incoming_mail(recipient_telegram_id=update.effective_user.id) if mail.message_id == message_id),
+        None,
+    )
+    if item is None:
+        await query.edit_message_text("Не удалось найти это сообщение.")
+        return ConversationHandler.END
+
+    context.user_data["mail"] = {"recipient_telegram_id": item.sender_telegram_id}
+    await query.message.reply_text(
+        f"Ответ для <b>{escape(item.sender_name)}</b>.\n\nВведите текст голубя.",
+        reply_markup=cancel_keyboard(),
+    )
+    return ASK_MAIL_TEXT
+
+
 async def mail_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     if not query or not update.effective_user:
@@ -198,5 +233,5 @@ async def mail_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 async def cancel_mail(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data.pop("mail", None)
-    await update.effective_message.reply_text("Действие отменено.", reply_markup=mail_keyboard())
+    await update.effective_message.reply_text("Действие отменено.", reply_markup=_menu_keyboard(update))
     return ConversationHandler.END

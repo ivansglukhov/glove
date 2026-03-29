@@ -1,11 +1,66 @@
 ﻿from __future__ import annotations
 
+import re
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from bot.config import get_settings
 from bot.db import session_scope
 from bot.models import Club, Rating, User, UserWeapon
+
+
+CITY_ALIASES = {
+    "спб": "Санкт-Петербург",
+    "санкт петербург": "Санкт-Петербург",
+    "санкт-петербург": "Санкт-Петербург",
+    "санкт петербуг": "Санкт-Петербург",
+    "санкт-петербуг": "Санкт-Петербург",
+    "питер": "Санкт-Петербург",
+    "saint petersburg": "Санкт-Петербург",
+    "st petersburg": "Санкт-Петербург",
+    "st. petersburg": "Санкт-Петербург",
+    "sankt petersburg": "Санкт-Петербург",
+    "sankt-petersburg": "Санкт-Петербург",
+}
+
+
+def _normalize_spaces(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip())
+
+
+def normalize_city_name(city: str | None) -> str:
+    raw = _normalize_spaces(city or "")
+    if not raw or raw == "-":
+        return "Не указан"
+    normalized_key = raw.replace("-", " ").casefold()
+    return CITY_ALIASES.get(normalized_key, raw)
+
+
+def list_known_city_names() -> list[str]:
+    with session_scope() as session:
+        cities = {
+            normalize_city_name(item)
+            for item in session.execute(select(User.city)).scalars().all()
+            if item and normalize_city_name(item) != "Не указан"
+        }
+        cities.update(
+            normalize_city_name(item)
+            for item in session.execute(select(Club.city)).scalars().all()
+            if item and normalize_city_name(item) != "Не указан"
+        )
+        return sorted(cities, key=str.casefold)
+
+
+def list_known_club_names() -> list[str]:
+    with session_scope() as session:
+        clubs = {item for item in session.execute(select(Club.name)).scalars().all() if item}
+        clubs.update(
+            item.strip()
+            for item in session.execute(select(User.custom_club_name)).scalars().all()
+            if item and item.strip() and item.strip() != "-"
+        )
+        return sorted(clubs, key=str.casefold)
 
 
 def get_user_by_telegram_id(telegram_id: int) -> User | None:
@@ -50,7 +105,7 @@ def upsert_user_profile(
                 username=username,
                 display_name=display_name,
                 full_name=full_name.strip(),
-                city=city.strip(),
+                city=normalize_city_name(city),
                 club_id=club.id if club else None,
                 custom_club_name=custom_club_name,
             )
@@ -60,7 +115,7 @@ def upsert_user_profile(
             user.username = username
             user.display_name = display_name
             user.full_name = full_name.strip()
-            user.city = city.strip()
+            user.city = normalize_city_name(city)
             user.club_id = club.id if club else None
             user.custom_club_name = custom_club_name
             for weapon in list(user.weapons):

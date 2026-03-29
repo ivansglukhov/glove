@@ -19,7 +19,7 @@ def admin_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         [
             [KeyboardButton("Почта")],
-            [KeyboardButton("Предложения")],
+            [KeyboardButton("Обращения")],
             [KeyboardButton("Спорные бои")],
             [KeyboardButton("Пользователи"), KeyboardButton("Матчи")],
             [KeyboardButton("События"), KeyboardButton("В меню")],
@@ -145,7 +145,7 @@ def weapons_keyboard(include_done: bool = True) -> ReplyKeyboardMarkup:
     rows = [
         [KeyboardButton("Рапира"), KeyboardButton("Сабля")],
         [KeyboardButton("Длинный меч"), KeyboardButton("Рапира и дага")],
-        [KeyboardButton("Меч и баклер")],
+        [KeyboardButton("Меч и баклер"), KeyboardButton("Катана")],
     ]
     if include_done:
         rows.append([KeyboardButton("Готово")])
@@ -201,7 +201,12 @@ def search_result_actions_inline(weapon_type: str, telegram_id: int) -> InlineKe
 
 
 def mail_actions_inline(message_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[InlineKeyboardButton("Удалить", callback_data=f"mail:delete:{message_id}")]])
+    return InlineKeyboardMarkup(
+        [[
+            InlineKeyboardButton("Ответить", callback_data=f"mail:reply:{message_id}"),
+            InlineKeyboardButton("Удалить", callback_data=f"mail:delete:{message_id}"),
+        ]]
+    )
 
 
 def admin_disputed_match_actions_inline(match_id: int) -> InlineKeyboardMarkup:
@@ -219,6 +224,12 @@ def admin_resolve_inline(match_id: int) -> InlineKeyboardMarkup:
             ],
             [InlineKeyboardButton("Ничья", callback_data=f"admin:resolve:draw:{match_id}")],
         ]
+    )
+
+
+def admin_feedback_actions_inline(kind: str, item_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Удалить", callback_data=f"admin:feedback_delete:{kind}:{item_id}")]]
     )
 
 
@@ -254,6 +265,7 @@ WEAPON_LABELS = {
     "Длинный меч": WeaponType.LONGSWORD.value,
     "Рапира и дага": WeaponType.RAPIER_DAGGER.value,
     "Меч и баклер": WeaponType.SWORD_BUCKLER.value,
+    "Катана": WeaponType.KATANA.value,
 }
 WEAPON_TITLES = {value: key for key, value in WEAPON_LABELS.items()}
 

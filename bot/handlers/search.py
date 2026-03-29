@@ -149,14 +149,12 @@ async def run_search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         reply_markup=_menu_keyboard(update),
         parse_mode="HTML",
     )
-    for index, result in enumerate(results[:10], start=1):
+    for index, result in enumerate(results, start=1):
         await update.message.reply_text(
             _format_result(result, index),
             parse_mode="HTML",
             reply_markup=search_result_actions_inline(weapon_type, result.card.telegram_id),
         )
-    if len(results) > 10:
-        await update.message.reply_text(texts.SEARCH_SHOWN_LIMIT, reply_markup=_menu_keyboard(update))
 
     await update.message.reply_text(texts.SEARCH_FALLBACK_INVITE, reply_markup=_menu_keyboard(update))
     context.user_data.pop("search", None)

@@ -82,12 +82,12 @@ def resolve_target(identifier: str) -> InvitationCreateResult:
             stmt = select(User).where(User.username.ilike(raw.lstrip("@")), User.is_active.is_(True))
             users = session.execute(stmt).scalars().all()
         else:
-            normalized_raw = raw.lower()
+            normalized_raw = raw.casefold()
             stmt = select(User).where(User.is_active.is_(True)).order_by(User.full_name.asc())
             users = [
                 user
                 for user in session.execute(stmt).scalars().all()
-                if normalized_raw in user.full_name.lower()
+                if normalized_raw in user.full_name.casefold()
             ]
 
         if len(users) == 1:

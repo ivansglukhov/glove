@@ -8,13 +8,14 @@ from telegram.ext import ContextTypes, ConversationHandler
 from bot.config import get_settings
 from bot.keyboards.main import (
     admin_disputed_match_actions_inline,
+    admin_feedback_actions_inline,
     admin_menu_keyboard,
     admin_resolve_inline,
     admin_resolve_keyboard,
     cancel_keyboard,
 )
 from bot.services.admin import get_event_summary, list_matches, list_users
-from bot.services.feedback import list_complaints, list_suggestions
+from bot.services.feedback import delete_feedback_item, list_feedback_items
 from bot.services.matches import admin_resolve_match
 from bot.services.notifications import notify_match_result_confirmed
 
@@ -53,42 +54,26 @@ async def admin_ping(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text("Не удалось отправить уведомление админу.")
 
 
-async def admin_complaints(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def admin_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not _is_admin(update):
         await _deny(update)
         return
-    items = list_complaints()[:10]
+    items = list_feedback_items()
     if not items:
-        await update.message.reply_text("Жалоб пока нет.", reply_markup=admin_menu_keyboard())
+        await update.message.reply_text("Обращений пока нет.", reply_markup=admin_menu_keyboard())
         return
-    text = "Жалобы"
     for item in items:
-        text += (
-            f"\n\nID: {item.complaint_id}\n"
-            f"От: {item.from_name} ({item.from_telegram_id})\n"
-            f"Match ID: {item.match_id or '—'}\n"
-            f"Статус: {item.status}\n"
-            f"Текст: {item.text}"
+        kind_title = "Жалоба" if item.kind == "complaint" else "Предложение"
+        extra = f"\nMatch ID: {item.match_id or '—'}\nСтатус: {item.status}" if item.kind == "complaint" else ""
+        await update.message.reply_text(
+            (
+                f"{kind_title}\n\n"
+                f"ID: {item.item_id}\n"
+                f"От: {item.from_name} ({item.from_telegram_id}){extra}\n"
+                f"Текст: {item.text}"
+            ),
+            reply_markup=admin_feedback_actions_inline(item.kind, item.item_id),
         )
-    await update.message.reply_text(text, reply_markup=admin_menu_keyboard())
-
-
-async def admin_suggestions(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not _is_admin(update):
-        await _deny(update)
-        return
-    items = list_suggestions()[:10]
-    if not items:
-        await update.message.reply_text("Предложений пока нет.", reply_markup=admin_menu_keyboard())
-        return
-    text = "Предложения"
-    for item in items:
-        text += (
-            f"\n\nID: {item.suggestion_id}\n"
-            f"От: {item.from_name} ({item.from_telegram_id})\n"
-            f"Текст: {item.text}"
-        )
-    await update.message.reply_text(text, reply_markup=admin_menu_keyboard())
 
 
 async def admin_disputed_matches(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -153,8 +138,7 @@ async def admin_events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     text = (
         "События\n\n"
         f"Пользователей: {summary.users}\n"
-        f"Новых жалоб: {summary.complaints_new}\n"
-        f"Предложений: {summary.suggestions}\n"
+        f"Обращений: {summary.complaints_new + summary.suggestions}\n"
         f"Спорных боёв: {summary.disputed_matches}\n"
         f"Ожидающих приглашений: {summary.pending_invitations}"
     )
@@ -228,6 +212,18 @@ async def admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except ValueError:
             return
         await query.edit_message_reply_markup(reply_markup=admin_resolve_inline(match_id))
+        return
+
+    if parts[1] == "feedback_delete" and len(parts) == 4:
+        kind = parts[2]
+        try:
+            item_id = int(parts[3])
+        except ValueError:
+            return
+        if not delete_feedback_item(kind=kind, item_id=item_id):
+            await query.edit_message_text("Не удалось удалить обращение.")
+            return
+        await query.edit_message_text("Обращение удалено.")
         return
 
     if len(parts) != 4 or parts[1] != "resolve":

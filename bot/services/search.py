@@ -121,15 +121,15 @@ def search_by_filters(*, requester_telegram_id: int, weapon_type: str, own_club_
             if requester.club_id is not None:
                 users = [user for user in users if user.club_id == requester.club_id]
             elif requester.custom_club_name:
-                normalized = requester.custom_club_name.strip().lower()
-                users = [user for user in users if _club_name(user).strip().lower() == normalized]
+                normalized = requester.custom_club_name.strip().casefold()
+                users = [user for user in users if _club_name(user).strip().casefold() == normalized]
             else:
                 users = []
         elif club_name:
-            normalized = club_name.strip().lower()
-            users = [user for user in users if _club_name(user).strip().lower() == normalized]
+            normalized = club_name.strip().casefold()
+            users = [user for user in users if _club_name(user).strip().casefold() == normalized]
 
-        users.sort(key=lambda item: (_club_name(item).lower(), item.city.lower(), item.full_name.lower()))
+        users.sort(key=lambda item: (_club_name(item).casefold(), item.city.casefold(), item.full_name.casefold()))
         return [_to_result(session, user, weapon_type) for user in users]
 
 
@@ -159,7 +159,7 @@ def search_by_username(*, username: str, weapon_type: str) -> list[SearchResult]
 
 
 def search_by_full_name(*, full_name_query: str, weapon_type: str) -> list[SearchResult]:
-    normalized_query = full_name_query.strip().lower()
+    normalized_query = full_name_query.strip().casefold()
     if not normalized_query:
         return []
     with session_scope() as session:
@@ -171,6 +171,6 @@ def search_by_full_name(*, full_name_query: str, weapon_type: str) -> list[Searc
         )
         users = [
             user for user in session.execute(stmt).scalars().unique().all()
-            if normalized_query in user.full_name.lower()
+            if normalized_query in user.full_name.casefold()
         ]
         return [_to_result(session, user, weapon_type) for user in users]

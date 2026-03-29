@@ -43,7 +43,7 @@ def list_users(limit: int = 10) -> list[AdminUserView]:
         return [
             AdminUserView(
                 telegram_id=item.telegram_id,
-                name=item.display_name or item.full_name,
+                name=item.full_name,
                 city=item.city,
                 club=item.club.name if item.club else (item.custom_club_name or 'Не указан'),
                 registered_at=item.registered_at,
@@ -67,8 +67,8 @@ def list_matches(limit: int = 10, disputed_only: bool = False) -> list[AdminMatc
                     match_id=item.id,
                     status=item.status,
                     weapon_type=item.weapon_type,
-                    fighter_a=fighter_a.display_name or fighter_a.full_name,
-                    fighter_b=fighter_b.display_name or fighter_b.full_name,
+                    fighter_a=fighter_a.full_name,
+                    fighter_b=fighter_b.full_name,
                     created_at=item.created_at,
                 )
             )

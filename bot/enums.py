@@ -7,6 +7,7 @@ class WeaponType(StrEnum):
     LONGSWORD = "longsword"
     RAPIER_DAGGER = "rapier_dagger"
     SWORD_BUCKLER = "sword_buckler"
+    KATANA = "katana"
 
 
 class ReadinessStatus(StrEnum):

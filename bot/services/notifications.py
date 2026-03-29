@@ -47,21 +47,15 @@ def _result_text(winner, is_draw: bool) -> str:
     return f"победа {winner.full_name}" if winner else "результат не указан"
 
 
+def _actor_line(user) -> str:
+    return f"{_public_name(user)} ({user.telegram_id})"
+
+
 def _short_admin_copy_text(telegram_id: int, text: str) -> str:
     user = get_user_by_telegram_id(telegram_id)
     recipient_name = user.full_name if user is not None else f"Telegram ID {telegram_id}"
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    headline = lines[0] if lines else "Сообщение без текста"
-    details = []
-    for line in lines[1:]:
-        if line.startswith(("ID ", "Оружие:", "Результат:", "От:", "Кому:")):
-            details.append(line)
-        if len(details) == 2:
-            break
-    tail = "\n".join(details)
-    if tail:
-        return f"Копия сообщения\nКому: {recipient_name} ({telegram_id})\n{headline}\n{tail}"
-    return f"Копия сообщения\nКому: {recipient_name} ({telegram_id})\n{headline}"
+    cleaned_text = text.strip() or "Сообщение без текста"
+    return f"Копия сообщения\nКому: {recipient_name} ({telegram_id})\n\n{cleaned_text}"
 
 
 async def send_admin_message(context: ContextTypes.DEFAULT_TYPE, text: str) -> bool:
@@ -136,11 +130,7 @@ async def notify_invitation_created(context: ContextTypes.DEFAULT_TYPE, inviter,
         "Пройдите в перчаточную, чтобы принять перчатку или вернуть ее."
     )
     admin_text = (
-        "Брошена новая перчатка\n\n"
-        f"ID перчатки: {invitation.id}\n"
-        f"От: {_public_name(inviter)} ({inviter.telegram_id})\n"
-        f"Кому: {_public_name(invitee)} ({invitee.telegram_id})\n"
-        f"Оружие: {weapon}"
+        f"{_actor_line(inviter)} 🥊 {invitation.id} 🥊 {_actor_line(invitee)}"
     )
     await send_user_message(context, inviter.telegram_id, inviter_text)
     await send_user_message(
@@ -243,10 +233,7 @@ async def notify_match_created(context: ContextTypes.DEFAULT_TYPE, inviter, invi
         "После спарринга зайдите в раздел 'Мои бои' и предложите результат."
     )
     admin_text = (
-        "Создан бой\n\n"
-        f"ID боя: {match.id}\n"
-        f"Участники: {_public_name(inviter)} ({inviter.telegram_id}) vs {_public_name(invitee)} ({invitee.telegram_id})\n"
-        f"Оружие: {weapon}"
+        f"{_actor_line(inviter)} ⚔️ {match.id} ⚔️ {_actor_line(invitee)}"
     )
     result_markup = match_actions_inline(match.id, can_propose=True, can_confirm=False)
     await send_user_message(context, inviter.telegram_id, text, reply_markup=result_markup)
