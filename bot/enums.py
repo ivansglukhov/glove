@@ -4,9 +4,11 @@ from enum import StrEnum
 class WeaponType(StrEnum):
     FOIL = "foil"
     SABRE = "sabre"
+    POLISH_SABRE = "polish_sabre"
     LONGSWORD = "longsword"
     RAPIER_DAGGER = "rapier_dagger"
     SWORD_BUCKLER = "sword_buckler"
+    SIDESWORD = "sidesword"
     KATANA = "katana"
 
 

@@ -1,12 +1,14 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from dataclasses import dataclass
 
 from sqlalchemy import delete, or_, select
+from sqlalchemy.orm import selectinload
 
 from bot.db import session_scope
 from bot.enums import MatchStatus
 from bot.models import Complaint, Invitation, MailMessage, Match, MatchNote, Rating, RatingHistory, Suggestion, User, UserWeapon
+from bot.services.profile import normalize_city_name, normalize_club_name
 
 
 @dataclass(slots=True)
@@ -37,9 +39,13 @@ class AdminEventSummary:
     pending_invitations: int
 
 
+def _club_name(user: User) -> str:
+    return user.club.name if user.club else (user.custom_club_name or "Не указан")
+
+
 def list_users(limit: int | None = None) -> list[AdminUserView]:
     with session_scope() as session:
-        stmt = select(User).where(User.is_active.is_(True)).order_by(User.registered_at.desc())
+        stmt = select(User).where(User.is_active.is_(True)).options(selectinload(User.club)).order_by(User.registered_at.desc())
         if limit is not None:
             stmt = stmt.limit(limit)
         items = session.execute(stmt).scalars().all()
@@ -48,7 +54,66 @@ def list_users(limit: int | None = None) -> list[AdminUserView]:
                 telegram_id=item.telegram_id,
                 name=item.full_name,
                 city=item.city,
-                club=item.club.name if item.club else (item.custom_club_name or 'Не указан'),
+                club=_club_name(item),
+                registered_at=item.registered_at,
+            )
+            for item in items
+        ]
+
+
+def list_users_by_filters(
+    *,
+    requester_telegram_id: int,
+    own_club_only: bool = False,
+    club_name: str | None = None,
+    city_name: str | None = None,
+    full_name_query: str | None = None,
+) -> list[AdminUserView]:
+    with session_scope() as session:
+        requester = session.execute(
+            select(User)
+            .where(User.telegram_id == requester_telegram_id, User.is_active.is_(True))
+            .options(selectinload(User.club))
+        ).scalar_one_or_none()
+
+        if requester is None and own_club_only:
+            return []
+
+        items = session.execute(
+            select(User)
+            .where(User.is_active.is_(True))
+            .options(selectinload(User.club))
+            .order_by(User.registered_at.desc())
+        ).scalars().all()
+
+        if city_name:
+            normalized_city = normalize_city_name(city_name)
+            items = [item for item in items if normalize_city_name(item.city) == normalized_city]
+
+        if own_club_only:
+            if requester is None:
+                return []
+            if requester.club_id is not None:
+                items = [item for item in items if item.club_id == requester.club_id]
+            elif requester.custom_club_name:
+                normalized_club = normalize_club_name(requester.custom_club_name)
+                items = [item for item in items if normalize_club_name(_club_name(item)) == normalized_club]
+            else:
+                items = []
+        elif club_name:
+            normalized_club = normalize_club_name(club_name)
+            items = [item for item in items if normalize_club_name(_club_name(item)) == normalized_club]
+
+        if full_name_query:
+            query = full_name_query.strip().casefold()
+            items = [item for item in items if query in item.full_name.casefold()]
+
+        return [
+            AdminUserView(
+                telegram_id=item.telegram_id,
+                name=item.full_name,
+                city=item.city,
+                club=_club_name(item),
                 registered_at=item.registered_at,
             )
             for item in items
@@ -84,10 +149,10 @@ def get_event_summary() -> AdminEventSummary:
     with session_scope() as session:
         return AdminEventSummary(
             users=session.query(User).count(),
-            complaints_new=session.query(Complaint).filter(Complaint.status == 'new').count(),
+            complaints_new=session.query(Complaint).filter(Complaint.status == "new").count(),
             suggestions=session.query(Suggestion).count(),
             disputed_matches=session.query(Match).filter(Match.status == MatchStatus.DISPUTED.value).count(),
-            pending_invitations=session.query(Invitation).filter(Invitation.status == 'pending').count(),
+            pending_invitations=session.query(Invitation).filter(Invitation.status == "pending").count(),
         )
 
 

@@ -19,6 +19,13 @@ def _club_text(user) -> str:
     return user.club.name if user.club else (user.custom_club_name or "Не указан")
 
 
+def _mail_actor_line(user) -> str:
+    profile = get_user_by_telegram_id(user.telegram_id)
+    if profile is not None:
+        return f"{_public_name(profile)}({_club_text(profile)})"
+    return f"{_public_name(user)}({getattr(user, 'custom_club_name', None) or 'Не указан'})"
+
+
 def _weapon_block_with_ratings(user) -> str:
     ratings = {rating.weapon_type: rating.rating_value for rating in user.ratings}
     lines = []
@@ -366,6 +373,14 @@ async def notify_mail_received(context: ContextTypes.DEFAULT_TYPE, sender, recip
         photo_file_id=message.photo_file_id,
         sticker_file_id=message.sticker_file_id,
     )
+    if not getattr(sender, "is_admin", False) and not getattr(recipient, "is_admin", False):
+        admin_text = (
+            "Сообщение:\n"
+            f"{_mail_actor_line(sender)} -> {_mail_actor_line(recipient)}"
+        )
+        if message.text:
+            admin_text += f"\n\n{message.text}"
+        await send_admin_message(context, admin_text)
 
 
 async def notify_invitation_expired(context: ContextTypes.DEFAULT_TYPE, inviter, invitee, invitation) -> None:

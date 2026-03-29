@@ -154,8 +154,9 @@ def cancel_keyboard() -> ReplyKeyboardMarkup:
 def weapons_keyboard(include_done: bool = True) -> ReplyKeyboardMarkup:
     rows = [
         [KeyboardButton("Рапира"), KeyboardButton("Сабля")],
-        [KeyboardButton("Длинный меч"), KeyboardButton("Рапира и дага")],
-        [KeyboardButton("Меч и баклер"), KeyboardButton("Катана")],
+        [KeyboardButton("Польская сабля"), KeyboardButton("Длинный меч")],
+        [KeyboardButton("Рапира и дага"), KeyboardButton("Меч и баклер")],
+        [KeyboardButton("Сайдсорд"), KeyboardButton("Катана")],
     ]
     if include_done:
         rows.append([KeyboardButton("Готово")])
@@ -281,9 +282,11 @@ def menu_keyboard_for_role(is_admin: bool) -> ReplyKeyboardMarkup:
 WEAPON_LABELS = {
     "Рапира": WeaponType.FOIL.value,
     "Сабля": WeaponType.SABRE.value,
+    "Польская сабля": WeaponType.POLISH_SABRE.value,
     "Длинный меч": WeaponType.LONGSWORD.value,
     "Рапира и дага": WeaponType.RAPIER_DAGGER.value,
     "Меч и баклер": WeaponType.SWORD_BUCKLER.value,
+    "Сайдсорд": WeaponType.SIDESWORD.value,
     "Катана": WeaponType.KATANA.value,
 }
 WEAPON_TITLES = {value: key for key, value in WEAPON_LABELS.items()}

@@ -11,6 +11,9 @@ from bot.db import engine
 from bot.handlers.admin import (
     ASK_ADMIN_MATCH_ID,
     ASK_ADMIN_RESOLUTION,
+    ASK_ADMIN_USER_CLUB,
+    ASK_ADMIN_USER_MODE,
+    ASK_ADMIN_USER_QUERY,
     admin_callback,
     admin_cancel,
     admin_disputed_matches,
@@ -22,6 +25,9 @@ from bot.handlers.admin import (
     admin_resolve_match_id,
     admin_resolve_outcome,
     admin_resolve_start,
+    admin_users_choose_mode,
+    admin_users_club_input,
+    admin_users_query_input,
     admin_users,
 )
 from bot.handlers.common import help_command, seed_info, start
@@ -283,10 +289,16 @@ def build_application() -> Application:
     )
 
     admin_conversation = ConversationHandler(
-        entry_points=[MessageHandler(filters.Regex("^Решить спорный бой$"), admin_resolve_start)],
+        entry_points=[
+            MessageHandler(filters.Regex("^Решить спорный бой$"), admin_resolve_start),
+            MessageHandler(filters.Regex("^Пользователи$"), admin_users),
+        ],
         states={
             ASK_ADMIN_MATCH_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_resolve_match_id)],
             ASK_ADMIN_RESOLUTION: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_resolve_outcome)],
+            ASK_ADMIN_USER_MODE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_users_choose_mode)],
+            ASK_ADMIN_USER_CLUB: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_users_club_input)],
+            ASK_ADMIN_USER_QUERY: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_users_query_input)],
         },
         fallbacks=[MessageHandler(filters.Regex("^Отмена$"), admin_cancel)],
     )
@@ -308,7 +320,6 @@ def build_application() -> Application:
 
     application.add_handler(MessageHandler(filters.Regex("^Обращения$"), admin_feedback))
     application.add_handler(MessageHandler(filters.Regex("^Спорные бои$"), admin_disputed_matches))
-    application.add_handler(MessageHandler(filters.Regex("^Пользователи$"), admin_users))
     application.add_handler(MessageHandler(filters.Regex("^Матчи$"), admin_matches))
     application.add_handler(MessageHandler(filters.Regex("^События$"), admin_events))
     application.add_handler(MessageHandler(filters.Regex("^В меню$"), start))
