@@ -7,6 +7,7 @@ GIT_REMOTE="${GIT_REMOTE:-origin}"
 GIT_BRANCH="${GIT_BRANCH:-$(git -C "${PROJECT_DIR}" rev-parse --abbrev-ref HEAD)}"
 PYTHON_BIN="${PYTHON_BIN:-${PROJECT_DIR}/.venv/bin/python}"
 PIP_BIN="${PIP_BIN:-${PROJECT_DIR}/.venv/bin/pip}"
+IGNORED_STATUS_REGEX='(^..[[:space:]]+glove\.sqlite3$)|(^..[[:space:]]+logs/)|(^..[[:space:]]+bot-runtime\.out\.log$)|(^..[[:space:]]+bot-runtime\.err\.log$)'
 
 cd "${PROJECT_DIR}"
 
@@ -32,8 +33,11 @@ if [[ ! -x "${PIP_BIN}" ]]; then
 fi
 
 echo "[1/5] Проверка локальных изменений"
-if [[ -n "$(git status --porcelain)" ]]; then
+status_output="$(git status --porcelain | grep -Ev "${IGNORED_STATUS_REGEX}" || true)"
+if [[ -n "${status_output}" ]]; then
   echo "В репозитории есть незакоммиченные изменения. Остановлено."
+  echo
+  echo "${status_output}"
   exit 1
 fi
 

@@ -3,4 +3,7 @@ __pycache__/
 *.py[cod]
 .env
 glove.sqlite3
+logs/
+bot-runtime.out.log
+bot-runtime.err.log
 .pytest_cache/
