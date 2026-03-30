@@ -22,6 +22,7 @@
 - `install_python312.sh` - ставит системные зависимости и собирает Python 3.12.13 в `/opt/python-3.12`
 - `setup.sh` - создаёт `.venv` и ставит проект
 - `run.sh` - ручной запуск бота
+- `update_from_git.sh` - подтягивает обновления из git и перезапускает `glove-bot`
 - `install_systemd.sh` - установка `systemd`-сервиса
 - `glove-bot.service` - шаблон `systemd`-юнита
 
@@ -105,6 +106,23 @@ sudo bash debian/install_systemd.sh
 systemctl status glove-bot
 journalctl -u glove-bot -f
 ```
+
+### 8. Обновление из git
+
+Когда код уже на сервере и сервис установлен:
+
+```bash
+cd /opt/glove
+bash debian/update_from_git.sh
+```
+
+Скрипт:
+
+- проверяет, что рабочее дерево чистое
+- делает `git fetch` и `git pull --ff-only`
+- обновляет установленный проект через `pip install -e .`
+- проверяет `build_application()`
+- перезапускает `glove-bot` через `systemctl`
 
 ## Что делает install_python312.sh
 
