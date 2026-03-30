@@ -18,7 +18,7 @@ from bot.services.mail import (
     search_mail_recipients_by_full_name,
 )
 from bot.services.notifications import notify_mail_received
-from bot.services.profile import get_user_by_telegram_id, list_known_city_names, normalize_city_name
+from bot.services.profile import get_user_by_telegram_id, list_known_city_names, list_known_club_names, normalize_city_name, normalize_club_name
 
 
 ASK_MAIL_MODE, ASK_MAIL_CLUB, ASK_MAIL_QUERY, ASK_MAIL_RECIPIENT, ASK_MAIL_TEXT = range(70, 75)
@@ -47,6 +47,15 @@ def _numbered_cities_prompt() -> str:
     return "\n".join(lines)
 
 
+def _numbered_clubs_prompt() -> str:
+    clubs = list_known_club_names()
+    lines = ["Выберите клуб.", ""]
+    lines.extend(f"{index}. {club}" for index, club in enumerate(clubs, start=1))
+    lines.append("")
+    lines.append("Введите номер из списка или свой вариант.")
+    return "\n".join(lines)
+
+
 def _resolve_city_input(text: str) -> str:
     cities = list_known_city_names()
     try:
@@ -56,6 +65,17 @@ def _resolve_city_input(text: str) -> str:
     if 1 <= index <= len(cities):
         return normalize_city_name(cities[index - 1])
     return normalize_city_name(text)
+
+
+def _resolve_club_input(text: str) -> str:
+    clubs = list_known_club_names()
+    try:
+        index = int(text)
+    except ValueError:
+        return normalize_club_name(text) or text.strip()
+    if 1 <= index <= len(clubs):
+        return clubs[index - 1]
+    return normalize_club_name(text) or text.strip()
 
 
 async def mail_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -108,7 +128,7 @@ async def mail_choose_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if mode == "own_club":
         return await run_mail_search(update, context)
     if mode == "club":
-        await update.effective_message.reply_text("Введите точное название клуба.", reply_markup=cancel_keyboard())
+        await update.effective_message.reply_text(_numbered_clubs_prompt(), reply_markup=cancel_keyboard())
         return ASK_MAIL_CLUB
     await update.effective_message.reply_text("Введите ФИО полностью или частично.", reply_markup=cancel_keyboard())
     return ASK_MAIL_QUERY
@@ -118,7 +138,7 @@ async def mail_club_input(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     text = (update.effective_message.text if update.effective_message else "").strip()
     if not text or text == "Отмена":
         return await cancel_mail(update, context)
-    context.user_data["mail"]["club_name"] = text
+    context.user_data["mail"]["club_name"] = _resolve_club_input(text)
     return await run_mail_search(update, context)
 
 

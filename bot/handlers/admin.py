@@ -20,7 +20,13 @@ from bot.services.admin import delete_user_data, get_event_summary, list_matches
 from bot.services.feedback import delete_feedback_item, list_feedback_items
 from bot.services.matches import admin_resolve_match
 from bot.services.notifications import notify_match_result_confirmed
-from bot.services.profile import get_user_by_telegram_id, list_known_city_names, normalize_city_name
+from bot.services.profile import (
+    get_user_by_telegram_id,
+    list_known_city_names,
+    list_known_club_names,
+    normalize_city_name,
+    normalize_club_name,
+)
 
 
 ASK_ADMIN_MATCH_ID, ASK_ADMIN_RESOLUTION, ASK_ADMIN_USER_MODE, ASK_ADMIN_USER_CLUB, ASK_ADMIN_USER_QUERY = range(60, 65)
@@ -49,6 +55,15 @@ def _numbered_cities_prompt() -> str:
     return "\n".join(lines)
 
 
+def _numbered_clubs_prompt() -> str:
+    clubs = list_known_club_names()
+    lines = ["Выберите клуб.", ""]
+    lines.extend(f"{index}. {club}" for index, club in enumerate(clubs, start=1))
+    lines.append("")
+    lines.append("Введите номер из списка или свой вариант.")
+    return "\n".join(lines)
+
+
 def _resolve_city_input(text: str) -> str:
     cities = list_known_city_names()
     try:
@@ -58,6 +73,17 @@ def _resolve_city_input(text: str) -> str:
     if 1 <= index <= len(cities):
         return normalize_city_name(cities[index - 1])
     return normalize_city_name(text)
+
+
+def _resolve_club_input(text: str) -> str:
+    clubs = list_known_club_names()
+    try:
+        index = int(text)
+    except ValueError:
+        return normalize_club_name(text) or text.strip()
+    if 1 <= index <= len(clubs):
+        return clubs[index - 1]
+    return normalize_club_name(text) or text.strip()
 
 
 def _deny(update: Update):
@@ -185,7 +211,7 @@ async def admin_users_choose_mode(update: Update, context: ContextTypes.DEFAULT_
     if mode == "own_club":
         return await admin_users_run_search(update, context)
     if mode == "club":
-        await update.message.reply_text("Введите точное название клуба.", reply_markup=cancel_keyboard())
+        await update.message.reply_text(_numbered_clubs_prompt(), reply_markup=cancel_keyboard())
         return ASK_ADMIN_USER_CLUB
     await update.message.reply_text("Введите ФИО полностью или частично.", reply_markup=cancel_keyboard())
     return ASK_ADMIN_USER_QUERY
@@ -195,7 +221,7 @@ async def admin_users_club_input(update: Update, context: ContextTypes.DEFAULT_T
     text = (update.message.text if update.message else "").strip()
     if not text or text == "Отмена":
         return await admin_cancel(update, context)
-    context.user_data["admin_users"]["club_name"] = text
+    context.user_data["admin_users"]["club_name"] = _resolve_club_input(text)
     return await admin_users_run_search(update, context)
 
 
