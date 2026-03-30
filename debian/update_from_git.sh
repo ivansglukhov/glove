@@ -7,7 +7,13 @@ GIT_REMOTE="${GIT_REMOTE:-origin}"
 GIT_BRANCH="${GIT_BRANCH:-$(git -C "${PROJECT_DIR}" rev-parse --abbrev-ref HEAD)}"
 PYTHON_BIN="${PYTHON_BIN:-${PROJECT_DIR}/.venv/bin/python}"
 PIP_BIN="${PIP_BIN:-${PROJECT_DIR}/.venv/bin/pip}"
-IGNORED_STATUS_REGEX='(^..[[:space:]]+glove\.sqlite3$)|(^..[[:space:]]+logs/)|(^..[[:space:]]+bot-runtime\.out\.log$)|(^..[[:space:]]+bot-runtime\.err\.log$)'
+PROTECTED_CLEAN_EXCLUDES=(
+  "-e" ".env"
+  "-e" "glove.sqlite3"
+  "-e" "logs"
+  "-e" "bot-runtime.out.log"
+  "-e" "bot-runtime.err.log"
+)
 
 cd "${PROJECT_DIR}"
 
@@ -32,18 +38,13 @@ if [[ ! -x "${PIP_BIN}" ]]; then
   exit 1
 fi
 
-echo "[1/5] Проверка локальных изменений"
-status_output="$(git status --porcelain | grep -Ev "${IGNORED_STATUS_REGEX}" || true)"
-if [[ -n "${status_output}" ]]; then
-  echo "В репозитории есть незакоммиченные изменения. Остановлено."
-  echo
-  echo "${status_output}"
-  exit 1
-fi
-
-echo "[2/5] Обновление git"
+echo "[1/5] Обновление git"
 git fetch "${GIT_REMOTE}"
-git pull --ff-only "${GIT_REMOTE}" "${GIT_BRANCH}"
+target_ref="${GIT_REMOTE}/${GIT_BRANCH}"
+
+echo "[2/5] Сброс локальных изменений в коде"
+git reset --hard "${target_ref}"
+git clean -fd "${PROTECTED_CLEAN_EXCLUDES[@]}"
 
 echo "[3/5] Обновление зависимостей проекта"
 "${PIP_BIN}" install -e .
